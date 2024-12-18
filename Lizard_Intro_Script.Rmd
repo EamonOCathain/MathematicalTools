@@ -1,0 +1,92 @@
+---
+title: "Yurt Lizard"
+author: "Richard Slevin"
+date: "2024-12-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+# Set the working directory
+setwd("~/Data/Kourou/Lizard Report")
+
+# Read the CSV file
+lizard_data <- read.csv("lizard.csv", header = TRUE)
+
+# View the first rows of the data
+head(lizard_data)
+
+
+```
+```{r}
+
+## Processing and Modification
+
+# Check the type of each column
+sapply(lizard_data, class)
+
+# Convert SD.Female.adult.weight..g. to numeric
+lizard_data$SD.Female.adult.weight..g. <- as.numeric(lizard_data$SD.Female.adult.weight..g.)
+
+# Convert categorical columns to factors
+lizard_data$Mode.of.reproduction <- as.factor(lizard_data$Mode.of.reproduction)
+lizard_data$Foraging.Mode <- as.factor(lizard_data$Foraging.Mode)
+lizard_data$Distribution <- as.factor(lizard_data$Distribution)
+
+# Check updated column types
+str(lizard_data)
+
+View(lizard_data)
+
+```
+```{r}
+# Check for Duplicates
+duplicates <- lizard_data[duplicated(lizard_data), ]
+print("Duplicate Rows:")
+print(duplicates)
+
+# Remove duplicates
+lizard_data <- lizard_data[!duplicated(lizard_data), ]
+
+# Manually Validate Ranges (e.g., SVL, weight)
+summary(lizard_data$`Average.Female.adult.weight..g.`)  
+
+## What to do about NA's 
+
+```
+
+
+```{r}
+
+# 1.5 Identify Outliers
+# Use boxplots to visualize numeric columns
+boxplot(lizard_data$`Average.Female.adult.weight..g.`, main = "Female Adult Weight Outliers")
+boxplot(lizard_data$`Mean.F.SVL.adults..mm.`, main = "Mean SVL Outliers")
+
+# Optionally remove extreme outliers
+# Define thresholds based on IQR (Interquartile Range)
+Q1 <- quantile(lizard_data$`Average.Female.adult.weight..g.`, 0.25, na.rm = TRUE)
+Q3 <- quantile(lizard_data$`Average.Female.adult.weight..g.`, 0.75, na.rm = TRUE)
+IQR <- Q3 - Q1
+
+# Remove outliers beyond 1.5 * IQR
+lizard_data <- subset(lizard_data, `Average.Female.adult.weight..g.` >= (Q1 - 1.5*IQR) & 
+                      `Average.Female.adult.weight..g.` <= (Q3 + 1.5*IQR))
+
+# 1.6 Final Cleaned Data Summary
+View(lizard_data)
+summary(lizard_data)
+str(lizard_data)
+
+
+```
+
