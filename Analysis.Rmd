@@ -1,0 +1,27 @@
+---
+title: "BeginAnalysis"
+author: "Eamon"
+date: "2024-12-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Specify the FilePath and Read CSV
+```{r}
+path <- "/Users/eamon/Desktop/MathToolsProject/R_Project/MathematicalTools/lizard.csv"
+
+# Read a CSV file
+data <- read.csv(path)
+
+# View the first few rows of the data
+data
+```
+
+# Explore Data
+```{r}
+head()
+```
+
