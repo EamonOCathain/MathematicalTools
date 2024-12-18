@@ -56,4 +56,14 @@ data$Distribution <- as.factor(data$Distribution)
 data$Prefered.Habitat.Type <- as.factor(data$Prefered.Habitat.Type)
 ```
 
-### 
+### Check for and Remove Duplicates
+```{r}
+# Check for Duplicates
+duplicates <- data[duplicated(data), ]
+print("Duplicate Rows:")
+print(duplicates)
+
+# Remove duplicates
+data <- data[!duplicated(data), ]
+```
+

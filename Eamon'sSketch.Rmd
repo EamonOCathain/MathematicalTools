@@ -1,38 +1,88 @@
 ---
-title: "R Notebook"
-output: html_notebook
+title: "BeginAnalysis"
+author: "Eamon"
+date: "2024-12-18"
+output: html_document
 ---
-# Load Packages
+# Initialisation
+## Set Up
+### Load Libraries
 ```{r}
 library(tidyverse)
-# plus the following
 library(corrplot) # For correlation plots
 library(FactoMineR) # For PCA
 library(factoextra) # For PCA plots
 library(vegan) # For CCA
 ```
-# Load Data
+
+### 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Clear environment
 ```{r}
-setwd("/Users/eamon/Desktop/MathToolsProject/R_Project/MathematicalTools")
+rm(list = ls())
+```
+
+
+### Specify the FilePath and Read CSV
+```{r}
+path <- "/Users/eamon/Desktop/MathToolsProject/R_Project/MathematicalTools/lizard.csv"
 
 # Read a CSV file
-data <- read.csv("lizard.csv")
+data <- read.csv(path)
 
 # View the first few rows of the data
 data
 ```
 
-# Testing for richard
+## Cleaning
+### Change Variables Types
+```{r}
+# Check the type of each column
+sapply(data, class)
+
+# Convert SD.Female.adult.weight..g. to numeric
+data$SD.Female.adult.weight..g. <- as.numeric(data$SD.Female.adult.weight..g.)
+
+# Convert categorical columns to factors
+data$Species <- as.factor(data$Species)
+data$Genus <- as.factor(data$Genus)
+data$Family<- as.factor(data$Family)
+data$Mode.of.reproduction <- as.factor(data$Mode.of.reproduction)
+data$Foraging.Mode <- as.factor(data$Foraging.Mode)
+data$Distribution <- as.factor(data$Distribution)
+data$Prefered.Habitat.Type <- as.factor(data$Prefered.Habitat.Type)
+```
+
+### Check for and Remove Duplicates
+```{r}
+# Check for Duplicates
+duplicates <- data[duplicated(data), ]
+print("Duplicate Rows:")
+print(duplicates)
+
+# Remove duplicates
+data <- data[!duplicated(data), ]
+```
+
+# Remove NAs
+```{r}
+data_clean <- na.omit(data)
+nrows(data_clean)
+```
 
 
-
-
-
-
-
-
-
-
+# Visualisation
+## Correlations
+### CorrPlot
+```{r}
+data %>% 
+  select_if(is.numeric) %>% # Select only numeric columns
+  cor(use="pairwise.complete.obs") %>% # Calculate the empirical correlation matrix
+  corrplot() # Then graph this matrix
+```
 
 
 
