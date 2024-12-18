@@ -1,0 +1,24 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+# Load Packages
+```{r}
+library(tidyverse)
+# plus the following
+library(corrplot) # For correlation plots
+library(FactoMineR) # For PCA
+library(factoextra) # For PCA plots
+library(vegan) # For CCA
+```
+# Load Data
+```{r}
+setwd("/Users/eamon/Desktop/MathToolsProject/R_Project/MathematicalTools")
+
+# Read a CSV file
+data <- read.csv("lizard.csv")
+
+# View the first few rows of the data
+data
+```
+

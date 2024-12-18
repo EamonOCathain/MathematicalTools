@@ -27,6 +27,8 @@ head(lizard_data)
 
 
 ```
+
+
 ```{r}
 
 ## Processing and Modification
@@ -48,6 +50,8 @@ str(lizard_data)
 View(lizard_data)
 
 ```
+
+
 ```{r}
 # Check for Duplicates
 duplicates <- lizard_data[duplicated(lizard_data), ]
@@ -61,12 +65,10 @@ lizard_data <- lizard_data[!duplicated(lizard_data), ]
 summary(lizard_data$`Average.Female.adult.weight..g.`)  
 
 ## What to do about NA's 
-
 ```
 
 
 ```{r}
-
 # 1.5 Identify Outliers
 # Use boxplots to visualize numeric columns
 boxplot(lizard_data$`Average.Female.adult.weight..g.`, main = "Female Adult Weight Outliers")
@@ -86,7 +88,5 @@ lizard_data <- subset(lizard_data, `Average.Female.adult.weight..g.` >= (Q1 - 1.
 View(lizard_data)
 summary(lizard_data)
 str(lizard_data)
-
-
 ```
 
