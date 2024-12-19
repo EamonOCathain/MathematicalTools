@@ -14,7 +14,6 @@ library(FactoMineR) # For PCA
 library(factoextra) # For PCA plots
 library(vegan) # For CCA
 library(ggplot2)
-install.packages("ggrepel")
 ```
 
 ### 
@@ -115,7 +114,7 @@ data_scaled <- data_selected %>%
   select_if(is.numeric) %>%
   #Only numeric columns are selected
   mutate_all(.funs = scale)
-head(data_scaled_clean)
+head(data_scaled)
 ```
 ### Visualise with a Correlation
 ```{r}
