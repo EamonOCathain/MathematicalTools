@@ -14,6 +14,10 @@ library(FactoMineR) # For PCA
 library(factoextra) # For PCA plots
 library(vegan) # For CCA
 library(ggplot2)
+library(rsample) # For sampling of data (split, analysis,..)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
 ```
 
 ### 
@@ -102,7 +106,6 @@ data_filtered <- data %>%
   select(-Sample.Size.Female.adult.weight, -Sample.size.Clutch.Size., -Sample.size.Mean.F.SVL.adults, SD.Female.adult.weight..g., -SD.F.SVL.adults..mm., -RCM)
 ```
 
-
 ## NAs
 ### Check Amount of Data Loss If All NAs Removed
 ```{r}
@@ -127,6 +130,7 @@ data_scaled <- data_selected %>%
   mutate_all(.funs = scale)
 head(data_scaled)
 ```
+
 ### Visualise with a Correlation
 ```{r}
 ### CorrPlot
@@ -142,15 +146,18 @@ result_pca <- PCA(data_scaled,
                ncp = 18, # Number of components to keep (here, all)
                graph = FALSE)
 ```
+
 ### Result of PCA
 ```{r}
 names(result_pca) # It's a list
 result_pca
 ```
+
 ### Percentage of Information Retained
 ```{r}
 fviz_eig(result_pca, choice = "variance")
 ```
+
 ### Visualise the PCA
 ```{r}
 # Representation in the first principal plane
@@ -163,25 +170,126 @@ fviz_pca_var(result_pca,
 fviz_pca_var(result_pca,
              axes = c(1, 4))
 ```
+
 ### Extract Categorical Variables
 ```{r}
 distribution_series <- data_clean$Distribution
 foraging_mode <- data_clean$Foraging.Mode
 habitat_series <- data_clean$Prefered.Habitat.Type
 reproduction_mode_series <- data_clean$Mode.of.reproduction
+family <- data_clean$Family
+clutch_freq_series<-data_clean$Clutch.Frequency
 ```
-
 
 ### Represent Individuals
 ```{r}
 # Representation in the first principal plane
 fviz_pca_ind(result_pca,
              axes = c(1, 2),
-             habillage = reproduction_mode_series) # Number of axes to represent
+             habillage = family) # Number of axes to represent
 ```
 
 ```{r}
-view(data)
+# Representation in the first principal plane
+fviz_pca_biplot(result_pca,
+             axes = c(1, 2),
+             col.ind = clutch_freq_series) # Number of axes to represent
+```
+
+```{r}
+head(data_clean)
+```
+
+
+# Unsupervised Learning
+##Split Data
+###Filter Data Variables
+```{r}
+data_filtered <- data_clean %>%
+  select(-)
+  select(is.numeric, Clutch.Frequency, -SD.Female.adult.weight..g., -Latitude, -Longitude)
+head(data_filtered)
+```
+
+
+
+### Initial Split 
+```{r}
+split_data <- data_filtered %>%
+  initial_split(prop = 0.8, strata = "Prefered.Habitat.Type")
+
+# Train and Test Data
+train_data <- analysis(split_data)
+test_data <- assessment(split_data)
+```
+
+### Maximal Tree
+```{r}
+maximal_tree <- rpart(Prefered.Habitat.Type ~ ., # Formula: we explain the variable sol with all the others
+                   data = train_data,
+                   method = "class", # Classification tree
+                   control = rpart.control(minsplit = 2, # Minimal number of individuals in a node before cut
+                                 cp = 0,  # Parameter of minimal complexity
+                                 xval = 1)) # Number of cross-validation
+
+rpart.plot(maximal_tree)
+```
+
+### Choose Complexity Parameter
+```{r}
+maximal_tree <- rpart(Prefered.Habitat.Type ~ ., 
+                   data = train_data,
+                   method = "class",  
+                   control = rpart.control(minsplit = 2, 
+                                           cp=0,
+                                           xval = 100))
+
+# Table of results
+maximal_tree$cptable 
+# xerror gives CV mean error, xstd gives its standard deviation
+
+# We choose cp_optimal in the column "CP"
+# The row index is the one for which the value in column "xerror" is minimal
+cp_optimal <- maximal_tree$cptable[which.min(maximal_tree$cptable[, "xerror"]) , "CP"] # Column
+cp_optimal
+```
+Optimal CP = 0.01639344
+
+### Prune Maximal Tree for Optimal
+```{r}
+optimal_tree <- prune(maximal_tree, cp = cp_optimal)
+rpart.plot(optimal_tree)
+```
+### Test the Optimal Tree
+```{r}
+# Predictions on test set
+# (not used for training)
+predictions = predict(optimal_tree, newdata = select(test_data, - Prefered.Habitat.Type)) 
+predicted = apply(predictions,1,which.max)
+predicted_factor = factor(x = predicted, levels = c(1,2,3), labels = c("Alluvial","Dunaire","Grès"))
+
+# Confusion matrix
+confusion_matrix = table(prediction = predicted_factor, truth = test_data$Prefered.Habitat.Type) 
+confusion_matrix 
+```
+
+# Random Forests
+### Create the RF
+```{r}
+forest <- randomForest(Clutch.Frequency ~ ., # Formula for prediction
+                      data = train_data, # Data for training
+                      ntree = 5000, # Number of trees
+                      maxnodes = 10, # Number of maximum leaves for each tree
+                      mtry = 4, # Number of variables for each tree
+                      importance = TRUE) # Computation of importance
+```
+
+### Test the Accuracy
+```{r}
+# Fast way of computing accuracy with the pipe operator %>% 
+predict(forest, newdata = select(test_data, - Clutch.Frequency)) %>% 
+  table(prediction = ., truth = test_data$Clutch.Frequency) %>% 
+  {sum(diag(.)) / sum(.)}
 ```
 
 
