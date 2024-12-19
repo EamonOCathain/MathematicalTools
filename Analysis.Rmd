@@ -96,9 +96,10 @@ ggplot(na_df, aes(x = Column, y = NA_Percentage)) +
 ### Remove Unneeded Variables
 Here we removed the variables that we didn't plan to use in the PCA. 
 This was done before filtering out NAs to avoid unneccessary data loss.
+All rows which are missing RCM (NA) are also missing mean female adult weight (which makes sense as they're related).
 ```{r}
 data_filtered <- data %>%
-  select(-Sample.Size.Female.adult.weight, -Sample.size.Clutch.Size., -Sample.size.Mean.F.SVL.adults, SD.Female.adult.weight..g., -SD.F.SVL.adults..mm., -Average.Female.adult.weight..g., -RCM)
+  select(-Sample.Size.Female.adult.weight, -Sample.size.Clutch.Size., -Sample.size.Mean.F.SVL.adults, SD.Female.adult.weight..g., -SD.F.SVL.adults..mm., -RCM)
 ```
 
 
@@ -109,7 +110,6 @@ data_clean <- na.omit(data_filtered)
 nrow(data)
 # Too many rows lost if all NAs removed
 nrow(data_clean)
-view(data_clean)
 ```
 
 # PCA
