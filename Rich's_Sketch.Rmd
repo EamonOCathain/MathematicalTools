@@ -1,5 +1,5 @@
 ---
-title: "Yurt Lizard"
+title: "First-Steps"
 author: "Richard Slevin"
 date: "2024-12-16"
 output: html_document
@@ -24,6 +24,23 @@ data <- read.csv("lizard.csv", header = TRUE)
 
 # View the first rows of the data
 head(data)
+
+# Install Packages
+install.packages("tidyverse")
+install.packages("corrplot")
+install.packages("FactoMineR")
+install.packages("factoextra")
+install.packages("vegan")
+install.packages("ggpplot2")
+
+# Load Packages
+library(tidyverse)
+library(corrplot) # For correlation plots
+library(FactoMineR) # For PCA
+library(factoextra) # For PCA plots
+library(vegan) # For CCA
+library(ggplot2)
+
 ```
 
 
@@ -67,7 +84,7 @@ summary(data$`Average.Female.adult.weight..g.`)
 
 
 ```{r}
-# 1.5 Identify Outliers
+# Identify Outliers
 # Use boxplots to visualize numeric columns
 boxplot(data$`Average.Female.adult.weight..g.`, main = "Female Adult Weight Outliers")
 boxplot(data$`Mean.F.SVL.adults..mm.`, main = "Mean SVL Outliers")
@@ -82,7 +99,7 @@ IQR <- Q3 - Q1
 data <- subset(data, `Average.Female.adult.weight..g.` >= (Q1 - 1.5*IQR) & 
                       `Average.Female.adult.weight..g.` <= (Q3 + 1.5*IQR))
 
-# 1.6 Final Cleaned Data Summary
+# Final Cleaned Data Summary
 View(data)
 summary(data)
 str(data)
