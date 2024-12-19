@@ -68,15 +68,6 @@ print(duplicates)
 data <- data[!duplicated(data), ]
 ```
 
-## NAs
-### Check Amount of Data Loss If All NAs Removed
-```{r}
-data_clean <- na.omit(data)
-nrow(data)
-# Too many rows lost if all NAs removed
-nrow(data_clean)
-```
-
 ### Calculate Percentage of Each Variable Which Are NA
 ```{r}
 # Calculate percentage of NA values for each column
@@ -101,17 +92,37 @@ ggplot(na_df, aes(x = Column, y = NA_Percentage)) +
     axis.text.x = element_text(angle = 45, hjust = 1) # Rotate x-axis labels
   )
 ```
+
+### Remove Unneeded Variables
+Here we removed the variables that we didn't plan to use in the PCA. 
+This was done before filtering out NAs to avoid unneccessary data loss.
+```{r}
+data_filtered <- data %>%
+  select(-Sample.Size.Female.adult.weight, -Sample.size.Clutch.Size., -Sample.size.Mean.F.SVL.adults, SD.Female.adult.weight..g., -SD.F.SVL.adults..mm., -Average.Female.adult.weight..g., -RCM)
+```
+
+
+## NAs
+### Check Amount of Data Loss If All NAs Removed
+```{r}
+data_clean <- na.omit(data_filtered)
+nrow(data)
+# Too many rows lost if all NAs removed
+nrow(data_clean)
+view(data_clean)
+```
+
 # PCA
 ### Select Only Variables of Interest
 ```{r}
 data_selected <- data_clean %>%
-  select(-Latitude, -Longitude, -Sample.Size.Female.adult.weight, -Sample.size.Clutch.Size., -Sample.size.Mean.F.SVL.adults)
+  select_if(is.numeric) %>%
+  select(-Latitude, -Longitude)
 ```
 
 ### Scale the Data
 ```{r}
 data_scaled <- data_selected %>% 
-  select_if(is.numeric) %>%
   #Only numeric columns are selected
   mutate_all(.funs = scale)
 head(data_scaled)
@@ -123,7 +134,6 @@ data_scaled %>%
   cor(use="pairwise.complete.obs") %>% # Calculate the empirical correlation matrix
   corrplot() # Then graph this matrix
 ```
-
 
 ### Run the PCA
 ```{r}
@@ -153,6 +163,25 @@ fviz_pca_var(result_pca,
 fviz_pca_var(result_pca,
              axes = c(1, 4))
 ```
+### Extract Categorical Variables
+```{r}
+distribution_series <- data_clean$Distribution
+foraging_mode <- data_clean$Foraging.Mode
+habitat_series <- data_clean$Prefered.Habitat.Type
+reproduction_mode_series <- data_clean$Mode.of.reproduction
+```
 
+
+### Represent Individuals
+```{r}
+# Representation in the first principal plane
+fviz_pca_ind(result_pca,
+             axes = c(1, 2),
+             habillage = reproduction_mode_series) # Number of axes to represent
+```
+
+```{r}
+view(data)
+```
 
 
