@@ -14,6 +14,7 @@ library(FactoMineR) # For PCA
 library(factoextra) # For PCA plots
 library(vegan) # For CCA
 library(ggplot2)
+install.packages("ggrepel")
 ```
 
 ### 
@@ -35,11 +36,10 @@ path <- "/Users/eamon/Desktop/MathToolsProject/R_Project/MathematicalTools/lizar
 data <- read.csv(path)
 
 # View the first few rows of the data
-head(data)
+data
 ```
 
 ## Cleaning
-
 ### Change Variables Types
 ```{r}
 # Check the type of each column
@@ -71,15 +71,14 @@ data <- data[!duplicated(data), ]
 
 ## NAs
 ### Check Amount of Data Loss If All NAs Removed
-Here it was found that if all rows containing an NA are removed the dataset is reduced from 734 rows to 146 rows, which is too much loss.
 ```{r}
 data_clean <- na.omit(data)
 nrow(data)
+# Too many rows lost if all NAs removed
 nrow(data_clean)
 ```
 
 ### Calculate Percentage of Each Variable Which Are NA
-The aim here is to understand the percentage of each variable which are NA so we can choose which to focus on in our analysis.
 ```{r}
 # Calculate percentage of NA values for each column
 na_percentage <- colSums(is.na(data)) / nrow(data) * 100
@@ -103,16 +102,57 @@ ggplot(na_df, aes(x = Column, y = NA_Percentage)) +
     axis.text.x = element_text(angle = 45, hjust = 1) # Rotate x-axis labels
   )
 ```
-
-
-# Visualisation
-## Correlations
-### CorrPlot
+# PCA
+### Select Only Variables of Interest
 ```{r}
-data %>% 
-  select_if(is.numeric) %>% # Select only numeric columns
+data_selected <- data_clean %>%
+  select(-Latitude, -Longitude, -Sample.Size.Female.adult.weight, -Sample.size.Clutch.Size., -Sample.size.Mean.F.SVL.adults)
+```
+
+### Scale the Data
+```{r}
+data_scaled <- data_selected %>% 
+  select_if(is.numeric) %>%
+  #Only numeric columns are selected
+  mutate_all(.funs = scale)
+head(data_scaled_clean)
+```
+### Visualise with a Correlation
+```{r}
+### CorrPlot
+data_scaled %>% 
   cor(use="pairwise.complete.obs") %>% # Calculate the empirical correlation matrix
   corrplot() # Then graph this matrix
+```
+
+
+### Run the PCA
+```{r}
+result_pca <- PCA(data_scaled, 
+               scale.unit = TRUE, # Option to center and scale data (useless here)
+               ncp = 18, # Number of components to keep (here, all)
+               graph = FALSE)
+```
+### Result of PCA
+```{r}
+names(result_pca) # It's a list
+result_pca
+```
+### Percentage of Information Retained
+```{r}
+fviz_eig(result_pca, choice = "variance")
+```
+### Visualise the PCA
+```{r}
+# Representation in the first principal plane
+fviz_pca_var(result_pca,
+             axes = c(1, 2)) # Number of axes to represent 
+fviz_pca_var(result_pca,
+             axes = c(1, 3)) # Number of axes to represent 
+fviz_pca_var(result_pca,
+             axes = c(2, 3)) # Number of axes to represent 
+fviz_pca_var(result_pca,
+             axes = c(1, 4))
 ```
 
 
