@@ -41,56 +41,118 @@ data <- read.csv(path)
 ```{r}
 str(data)
 ```
+### Comparison of Similar Variables
+```{r}
+# Are clutch frequency and clutches per year the same?  
+cor(data$Clutch.Frequency, data$Clutches.per.year, use = "complete.obs")
+plot(data$Clutch.Frequency~data$Clutches.per.year)
+unique(data$Clutch.Frequency)
+unique(data$Clutches.per.year)
+
+# Are "F.SVL.at.maturity..mm." and "Mean.F.SVL.adults..mm." the same?
+cor(data$F.SVL.at.maturity..mm., data$Mean.F.SVL.adults..mm., use="complete.obs")
+plot(data$F.SVL.at.maturity..mm.~data$Mean.F.SVL.adults..mm.)
+```
+Seems like Clutch Frequency and Clutches per Year are highly related, but Clutches Per Year goes up to 6 and Clutch Frequency only ranges between 1 and 2.
+Seems like "F.SVL.at.maturity..mm." and "Mean.F.SVL.adults..mm." are the same.
+Therefore one of each pair should be excluded.
 
 
 ##Initialise Settings of the Analysis
 ```{r}
-# Create a list of variables to remove
-# This will result in the "data_filtered" and "data_clean" dataframes
-variables_to_remove <- c(
-  "Species",
-  "Genus",
-  #"Family",
-  "Population",
-  "Longitude",
-  "Latitude",
-  #"Average.Female.adult.weight..g.",
-  "SD.Female.adult.weight..g.",
-  "Sample.Size.Female.adult.weight",
-  #"Mean.F.SVL.adults..mm.",
-  "SD.F.SVL.adults..mm.",
-  "Sample.size.Mean.F.SVL.adults",
-  #"F.SVL.at.maturity..mm.",
-  #"Offspring.SVL..mm.",
-  #"Mean.Clutch.Size",
-  "Sample.size.Clutch.Size.",
-  #"Mode.of.reproduction",
+# These variables are removed as not required to answer the research questions.
+# This will result in the "data_filtered" and "data_clean" dataframes.
+variables_to_keep <- c(
+  ### Categorical Variables
+  #"Species",
+  #"Genus",
+  "Family",
+  #"Population",
+  "Mode.of.reproduction",
+  #"Source",
+  "Distribution",
+  "Prefered.Habitat.Type",
+  "Foraging.mode",
+  
+  ### Location
+  #"Longitude",
+  #"Latitude",
+  
+  ### Numerical Variables
+  "Average.Female.adult.weight..g.",
+  "Mean.F.SVL.adults..mm.",
+  #"F.SVL.at.maturity..mm.", # Removed as "Mean.F.SVL.adults..mm." is almost identical.
+  "Offspring.SVL..mm.",
+  "Mean.Clutch.Size",
   #"Clutches.per.year",
-  #"Clutch.Frequency",
-  #"RCM",
-  #"Foraging.Mode",
-  #"Distribution",
-  #"Prefered.Habitat.Type",
-  "Source"
+  "Clutch.Frequency",
+  "RCM"
+  
+  ### Standard Deviations and Sample Sizes
+  #"SD.F.SVL.adults..mm.",
+  #"Sample.size.Mean.F.SVL.adults",
+  #"SD.Female.adult.weight..g.",
+  #"Sample.Size.Female.adult.weight"
 )
 
 # Specify the variables to be included in the PCA
 # This will be result in the "data_scaled" dataframe
-variables_to_use_PCA <- numeric_variables <- c(
+variables_to_use_PCA <- c(
+  ### Location
   #"Longitude",
   #"Latitude",
+  
+  ### Means and Numerical
   "Average.Female.adult.weight..g.",
-  #"SD.Female.adult.weight..g.",
   "Mean.F.SVL.adults..mm.",
-  #"SD.F.SVL.adults..mm.",
   "F.SVL.at.maturity..mm.",
   "Offspring.SVL..mm.",
-  "Mean.Clutch.Size",
-  "Clutches.per.year",
-  "Clutch.Frequency",
-  "RCM"
+  "Mean.Clutch.Size"
+  #"Clutches.per.year",
+  #"Clutch.Frequency",
+  #"RCM"
+  
+  ### Standard Deviations and Sample Sizes
+  #"SD.Female.adult.weight..g.",
+  #"SD.F.SVL.adults..mm.",
+  #"Sample.Size.Female.adult.weight",
+  #"Sample.size.Mean.F.SVL.adults",
 )
 
+# Specify the Variables to Use in the Random Forests Analysis
+variables_to_use_RF <- c(
+  ### Categorical Variables
+  #"Species",
+  #"Genus",
+  #"Family",
+  #"Population",
+  "Mode.of.reproduction",
+  #"Source",
+  "Distribution",
+  "Prefered.Habitat.Type",
+  "Foraging.Mode",
+  "RCM",
+  
+  ### Location
+  #"Longitude",
+  #"Latitude",
+  
+  ### Numerical Variables
+  "Average.Female.adult.weight..g.",
+  "Mean.F.SVL.adults..mm.",
+  #"F.SVL.at.maturity..mm.",
+  "Offspring.SVL..mm.",
+  "Mean.Clutch.Size",
+  #"Clutches.per.year"
+  "Clutch.Frequency"
+  #"RCM"
+  
+  ### Standard Deviations and Sample Sizes
+  #"SD.F.SVL.adults..mm.",
+  #"Sample.size.Mean.F.SVL.adults",
+  #"SD.Female.adult.weight..g.",
+  #"Sample.Size.Female.adult.weight"
+)
 ```
 
 ## Cleaning
@@ -122,6 +184,9 @@ data <- data[!duplicated(data), ]
 
 ### Calculate Percentage of Each Variable Which Are NA
 ```{r}
+# Replace empty cells with NA for factors
+data[data == ''] <- NA
+
 # Calculate percentage of NA values for each column
 na_percentage <- colSums(is.na(data)) / nrow(data) * 100
 
@@ -150,12 +215,9 @@ Here we removed the variables that we didn't plan to use in any part of the anal
 This was done before filtering out NAs to avoid unneccessary data loss.
 All rows of the RCM column which are NA are also NA for mean female adult weight (which makes sense as they're related).
 ```{r}
-# Remove variables one by one
-data_filtered <- reduce(
-  variables_to_remove, 
-  ~ .x %>% select(-all_of(.y)), 
-  .init = data
-)
+# Select only the desired variables
+data_filtered <- data %>%
+  select(any_of(variables_to_keep))
 ```
 
 ## NAs
@@ -170,29 +232,30 @@ nrow(data_clean)
 # PCA
 ### Create New Dataset retaining only the PCA variables
 ```{r}
-data_PCA <- data_clean %>%
-  select(any_of(variables_to_use_PCA))
+data_PCA <- data %>%
+  select(any_of(variables_to_use_PCA)) %>%
+  na.omit()
 ```
 
 ### Scale the Data
 ```{r}
-data_scaled <- data_selected %>% 
+data_PCA <- data_PCA %>% 
   #Only numeric columns are selected
   mutate_all(.funs = scale)
-head(data_scaled)
 ```
 
 ### Visualise with a Correlation
 ```{r}
 ### CorrPlot
-data_scaled %>% 
+data_PCA %>% 
   cor(use="pairwise.complete.obs") %>% # Calculate the empirical correlation matrix
   corrplot() # Then graph this matrix
 ```
 
+
 ### Run the PCA
 ```{r}
-result_pca <- PCA(data_scaled, 
+result_pca <- PCA(data_PCA, 
                scale.unit = TRUE, # Option to center and scale data (useless here)
                ncp = 18, # Number of components to keep (here, all)
                graph = FALSE)
@@ -208,6 +271,12 @@ result_pca
 ```{r}
 fviz_eig(result_pca, choice = "variance")
 ```
+### Correlation between Each Variable and the Principle Components
+```{r}
+corrplot(result_pca$var$cor)
+```
+
+
 
 ### Visualise the PCA
 ```{r}
@@ -222,33 +291,79 @@ fviz_pca_var(result_pca,
              axes = c(1, 4))
 ```
 
-### Extract Categorical Variables
-```{r}
-distribution_series <- data_clean$Distribution
-foraging_mode <- data_clean$Foraging.Mode
-habitat_series <- data_clean$Prefered.Habitat.Type
-reproduction_mode_series <- data_clean$Mode.of.reproduction
-family <- data_clean$Family
-clutch_freq_series<-data_clean$Clutch.Frequency
-```
-
 ### Represent Individuals
 ```{r}
 # Representation in the first principal plane
 fviz_pca_ind(result_pca,
-             axes = c(1, 2),
-             habillage = family) # Number of axes to represent
+             axes = c(1, 2))
+fviz_pca_ind(result_pca,
+             axes = c(1, 3))
+fviz_pca_ind(result_pca,
+             axes = c(2, 3))
+fviz_pca_ind(result_pca,
+             axes = c(3, 4))
 ```
-
+### Plot the Individuals with the Variable Arrows and the Categorical Coloring
 ```{r}
 # Representation in the first principal plane
 fviz_pca_biplot(result_pca,
              axes = c(1, 2),
-             col.ind = clutch_freq_series) # Number of axes to represent
+             col.ind = data_clean$Distribution)
+fviz_pca_biplot(result_pca,
+             axes = c(1, 3),
+             col.ind = data_clean$Distribution)
+fviz_pca_biplot(result_pca,
+             axes = c(2, 3),
+             col.ind = data_clean$Distribution)
+fviz_pca_biplot(result_pca,
+             axes = c(3, 4),
+             col.ind = data_clean$Distribution)
+```
+# K-Means Clustering
+### 
+```{r}
+# Create Clusters For Four Groups
+first_kmeans <- data_PCA %>% 
+  kmeans(centers = 4)
+
+# Within Group Inertia
+first_kmeans$tot.withinss
+
+kmeans_5groups<- data_PCA %>%
+  kmeans(centers = 5)
+
+kmeans_4groups<- data_PCA %>%
+  kmeans(centers = 4)
+
+kmeans_3groups<- data_PCA %>%
+  kmeans(centers=3)
+
+kmeans_2groups <- data_PCA %>%
+  kmeans(centers=2)
+
+# Extract the Clustering Groups
+clusters_5groups <- kmeans_5groups$cluster
+clusters_4groups <- kmeans_4groups$cluster
+clusters_3groups <- kmeans_3groups$cluster
+clusters_2groups <- kmeans_2groups$cluster
 ```
 
+## Plot Clusters 
 ```{r}
-head(data_clean)
+# Representation in the first principal plane
+fviz_pca_biplot(result_pca,
+             axes = c(1, 2),
+             col.ind = clusters_4groups,
+             fill.var = "Red")
+fviz_pca_biplot(result_pca,
+             axes = c(1, 3),
+             col.ind = clusters_4groups)
+fviz_pca_biplot(result_pca,
+             axes = c(2, 3),
+             col.ind = clusters_4groups)
+fviz_pca_biplot(result_pca,
+             axes = c(3, 4),
+             col.ind = clusters_4groups)
 ```
 
 
@@ -256,78 +371,25 @@ head(data_clean)
 ##Split Data
 ###Filter Data Variables
 ```{r}
-data_filtered <- data_clean %>%
-  select(-Species, -Family, -Genus, -Population, -Source)
-  #select(is.numeric, Clutch.Frequency, -SD.Female.adult.weight..g., -Latitude, -Longitude)
-str(data_filtered)
+data_RF <- data_clean %>%
+  select(any_of(variables_to_use_RF))
+str(data_RF)
 ```
-
-
 
 ### Initial Split 
 ```{r}
-split_data <- data_filtered %>%
-  initial_split(prop = 0.8, strata = "Prefered.Habitat.Type")
+split_data <- data_RF %>%
+  initial_split(prop = 0.8, strata = "RCM")
 
 # Train and Test Data
 train_data <- analysis(split_data)
 test_data <- assessment(split_data)
 ```
 
-### Maximal Tree
-```{r}
-maximal_tree <- rpart(Prefered.Habitat.Type ~ ., # Formula: we explain the variable sol with all the others
-                   data = train_data,
-                   method = "class", # Classification tree
-                   control = rpart.control(minsplit = 2, # Minimal number of individuals in a node before cut
-                                 cp = 0,  # Parameter of minimal complexity
-                                 xval = 1)) # Number of cross-validation
-
-rpart.plot(maximal_tree)
-```
-
-### Choose Complexity Parameter
-```{r}
-maximal_tree <- rpart(Prefered.Habitat.Type ~ ., 
-                   data = train_data,
-                   method = "class",  
-                   control = rpart.control(minsplit = 2, 
-                                           cp=0,
-                                           xval = 100))
-
-# Table of results
-maximal_tree$cptable 
-# xerror gives CV mean error, xstd gives its standard deviation
-
-# We choose cp_optimal in the column "CP"
-# The row index is the one for which the value in column "xerror" is minimal
-cp_optimal <- maximal_tree$cptable[which.min(maximal_tree$cptable[, "xerror"]) , "CP"] # Column
-cp_optimal
-```
-Optimal CP = 0.01639344
-
-### Prune Maximal Tree for Optimal
-```{r}
-optimal_tree <- prune(maximal_tree, cp = cp_optimal)
-rpart.plot(optimal_tree)
-```
-### Test the Optimal Tree
-```{r}
-# Predictions on test set
-# (not used for training)
-predictions = predict(optimal_tree, newdata = select(test_data, - Prefered.Habitat.Type)) 
-predicted = apply(predictions,1,which.max)
-predicted_factor = factor(x = predicted, levels = c(1,2,3), labels = c("Alluvial","Dunaire","Grès"))
-
-# Confusion matrix
-confusion_matrix = table(prediction = predicted_factor, truth = test_data$Prefered.Habitat.Type) 
-confusion_matrix 
-```
-
-# Random Forests
+## Random Forests
 ### Create the RF
 ```{r}
-forest <- randomForest(Clutch.Frequency ~ ., # Formula for prediction
+forest <- randomForest(RCM ~ ., # Formula for prediction
                       data = train_data, # Data for training
                       ntree = 5000, # Number of trees
                       maxnodes = 10, # Number of maximum leaves for each tree
@@ -338,8 +400,8 @@ forest <- randomForest(Clutch.Frequency ~ ., # Formula for prediction
 ### Test the Accuracy
 ```{r}
 # Fast way of computing accuracy with the pipe operator %>% 
-predict(forest, newdata = select(test_data, - Clutch.Frequency)) %>% 
-  table(prediction = ., truth = test_data$Clutch.Frequency) %>% 
+predict(forest, newdata = select(test_data, - RCM)) %>% 
+  table(prediction = ., truth = test_data$RCM) %>% 
   {sum(diag(.)) / sum(.)}
 ```
 
