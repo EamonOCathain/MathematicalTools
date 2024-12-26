@@ -102,16 +102,16 @@ Here we removed the variables that we didn't plan to use in the PCA.
 This was done before filtering out NAs to avoid unneccessary data loss.
 All rows which are missing RCM (NA) are also missing mean female adult weight (which makes sense as they're related).
 ```{r}
-data_filtered <- data %>%
-  select(-Sample.Size.Female.adult.weight, -Sample.size.Clutch.Size., -Sample.size.Mean.F.SVL.adults, SD.Female.adult.weight..g., -SD.F.SVL.adults..mm., -RCM)
+data_filtered_PCA <- data %>%
+  select(-Sample.Size.Female.adult.weight, -Sample.size.Clutch.Size., -Sample.size.Mean.F.SVL.adults, -SD.Female.adult.weight..g., -SD.F.SVL.adults..mm.)
 ```
 
 ## NAs
 ### Check Amount of Data Loss If All NAs Removed
 ```{r}
-data_clean <- na.omit(data_filtered)
+data_clean <- na.omit(data_filtered_PCA)
 nrow(data)
-# Too many rows lost if all NAs removed
+# Too many rows lost if all NAs removed, but for now can't be avoided
 nrow(data_clean)
 ```
 
@@ -136,7 +136,7 @@ head(data_scaled)
 ### CorrPlot
 data_scaled %>% 
   cor(use="pairwise.complete.obs") %>% # Calculate the empirical correlation matrix
-  corrplot() # Then graph this matrix
+  corrplot() # Then graph this matrix 
 ```
 
 ### Run the PCA
@@ -170,31 +170,57 @@ fviz_pca_var(result_pca,
 fviz_pca_var(result_pca,
              axes = c(1, 4))
 ```
-
-### Extract Categorical Variables
+# Plot Individuals
 ```{r}
-distribution_series <- data_clean$Distribution
-foraging_mode <- data_clean$Foraging.Mode
-habitat_series <- data_clean$Prefered.Habitat.Type
-reproduction_mode_series <- data_clean$Mode.of.reproduction
-family <- data_clean$Family
-clutch_freq_series<-data_clean$Clutch.Frequency
+# Representation in the first principal plane
+fviz_pca_biplot(result_pca,
+             axes = c(1, 2))
+            
+fviz_pca_biplot(result_pca,
+             axes = c(1, 3))
+fviz_pca_biplot(result_pca,
+             axes = c(2, 3))
+             
+fviz_pca_biplot(result_pca,
+             axes = c(3, 4))
 ```
 
-### Represent Individuals
+
+### First Principle Plane with Various Colorations
 ```{r}
 # Representation in the first principal plane
 fviz_pca_ind(result_pca,
              axes = c(1, 2),
-             habillage = family) # Number of axes to represent
+             col.ind = data_clean$RCM)
+# Representation in the first principal plane
+fviz_pca_ind(result_pca,
+             axes = c(1, 2),
+             col.ind = data_clean$Mean.Clutch.Size)
+fviz_pca_ind(result_pca,
+             axes = c(1, 2),
+             col.ind = data_clean$Mean.F.SVL.adults..mm.)
+fviz_pca_ind(result_pca,
+             axes = c(1, 2),
+             col.ind = data_clean$F.SVL.at.maturity..mm.)
 ```
 
+### 
 ```{r}
 # Representation in the first principal plane
 fviz_pca_biplot(result_pca,
              axes = c(1, 2),
-             col.ind = clutch_freq_series) # Number of axes to represent
+             col.ind = data_clean$Clutch.Frequency) # Number of axes to represent
+fviz_pca_biplot(result_pca,
+             axes = c(1, 3),
+             col.ind = data_clean$Clutch.Frequency # Number of axes to represent
+fviz_pca_biplot(result_pca,
+             axes = c(2, 3),
+             col.ind = data_clean$Clutch.Frequency) # Number of axes to represent
+fviz_pca_biplot(result_pca,
+             axes = c(3, 4),
+             col.ind = data_clean$Clutch.Frequency) # Number of axes to represent
 ```
+
 
 ```{r}
 head(data_clean)
@@ -206,9 +232,9 @@ head(data_clean)
 ###Filter Data Variables
 ```{r}
 data_filtered <- data_clean %>%
-  select(-)
-  select(is.numeric, Clutch.Frequency, -SD.Female.adult.weight..g., -Latitude, -Longitude)
-head(data_filtered)
+  select(-Species, -Family, -Genus, -Population, -Source)
+  #select(is.numeric, Clutch.Frequency, -SD.Female.adult.weight..g., -Latitude, -Longitude)
+str(data_filtered)
 ```
 
 
@@ -221,56 +247,6 @@ split_data <- data_filtered %>%
 # Train and Test Data
 train_data <- analysis(split_data)
 test_data <- assessment(split_data)
-```
-
-### Maximal Tree
-```{r}
-maximal_tree <- rpart(Prefered.Habitat.Type ~ ., # Formula: we explain the variable sol with all the others
-                   data = train_data,
-                   method = "class", # Classification tree
-                   control = rpart.control(minsplit = 2, # Minimal number of individuals in a node before cut
-                                 cp = 0,  # Parameter of minimal complexity
-                                 xval = 1)) # Number of cross-validation
-
-rpart.plot(maximal_tree)
-```
-
-### Choose Complexity Parameter
-```{r}
-maximal_tree <- rpart(Prefered.Habitat.Type ~ ., 
-                   data = train_data,
-                   method = "class",  
-                   control = rpart.control(minsplit = 2, 
-                                           cp=0,
-                                           xval = 100))
-
-# Table of results
-maximal_tree$cptable 
-# xerror gives CV mean error, xstd gives its standard deviation
-
-# We choose cp_optimal in the column "CP"
-# The row index is the one for which the value in column "xerror" is minimal
-cp_optimal <- maximal_tree$cptable[which.min(maximal_tree$cptable[, "xerror"]) , "CP"] # Column
-cp_optimal
-```
-Optimal CP = 0.01639344
-
-### Prune Maximal Tree for Optimal
-```{r}
-optimal_tree <- prune(maximal_tree, cp = cp_optimal)
-rpart.plot(optimal_tree)
-```
-### Test the Optimal Tree
-```{r}
-# Predictions on test set
-# (not used for training)
-predictions = predict(optimal_tree, newdata = select(test_data, - Prefered.Habitat.Type)) 
-predicted = apply(predictions,1,which.max)
-predicted_factor = factor(x = predicted, levels = c(1,2,3), labels = c("Alluvial","Dunaire","Grès"))
-
-# Confusion matrix
-confusion_matrix = table(prediction = predicted_factor, truth = test_data$Prefered.Habitat.Type) 
-confusion_matrix 
 ```
 
 # Random Forests
