@@ -30,16 +30,67 @@ knitr::opts_chunk$set(echo = TRUE)
 rm(list = ls())
 ```
 
-
 ### Specify the FilePath and Read CSV
 ```{r}
 path <- "/Users/eamon/Desktop/MathToolsProject/R_Project/MathematicalTools/lizard.csv"
 
 # Read a CSV file
 data <- read.csv(path)
+```
+### Column Names for Copying
+```{r}
+str(data)
+```
 
-# View the first few rows of the data
-data
+
+##Initialise Settings of the Analysis
+```{r}
+# Create a list of variables to remove
+# This will result in the "data_filtered" and "data_clean" dataframes
+variables_to_remove <- c(
+  "Species",
+  "Genus",
+  #"Family",
+  "Population",
+  "Longitude",
+  "Latitude",
+  #"Average.Female.adult.weight..g.",
+  "SD.Female.adult.weight..g.",
+  "Sample.Size.Female.adult.weight",
+  #"Mean.F.SVL.adults..mm.",
+  "SD.F.SVL.adults..mm.",
+  "Sample.size.Mean.F.SVL.adults",
+  #"F.SVL.at.maturity..mm.",
+  #"Offspring.SVL..mm.",
+  #"Mean.Clutch.Size",
+  "Sample.size.Clutch.Size.",
+  #"Mode.of.reproduction",
+  #"Clutches.per.year",
+  #"Clutch.Frequency",
+  #"RCM",
+  #"Foraging.Mode",
+  #"Distribution",
+  #"Prefered.Habitat.Type",
+  "Source"
+)
+
+# Specify the variables to be included in the PCA
+# This will be result in the "data_scaled" dataframe
+variables_to_use_PCA <- numeric_variables <- c(
+  #"Longitude",
+  #"Latitude",
+  "Average.Female.adult.weight..g.",
+  #"SD.Female.adult.weight..g.",
+  "Mean.F.SVL.adults..mm.",
+  #"SD.F.SVL.adults..mm.",
+  "F.SVL.at.maturity..mm.",
+  "Offspring.SVL..mm.",
+  "Mean.Clutch.Size",
+  "Clutches.per.year",
+  "Clutch.Frequency",
+  "RCM"
+)
+
 ```
 
 ## Cleaning
@@ -47,9 +98,6 @@ data
 ```{r}
 # Check the type of each column
 sapply(data, class)
-
-# Convert SD.Female.adult.weight..g. to numeric
-data$SD.Female.adult.weight..g. <- as.numeric(data$SD.Female.adult.weight..g.)
 
 # Convert categorical columns to factors
 data$Species <- as.factor(data$Species)
@@ -98,12 +146,16 @@ ggplot(na_df, aes(x = Column, y = NA_Percentage)) +
 ```
 
 ### Remove Unneeded Variables
-Here we removed the variables that we didn't plan to use in the PCA. 
+Here we removed the variables that we didn't plan to use in any part of the analysis. 
 This was done before filtering out NAs to avoid unneccessary data loss.
-All rows which are missing RCM (NA) are also missing mean female adult weight (which makes sense as they're related).
+All rows of the RCM column which are NA are also NA for mean female adult weight (which makes sense as they're related).
 ```{r}
-data_filtered <- data %>%
-  select(-Sample.Size.Female.adult.weight, -Sample.size.Clutch.Size., -Sample.size.Mean.F.SVL.adults, SD.Female.adult.weight..g., -SD.F.SVL.adults..mm., -RCM)
+# Remove variables one by one
+data_filtered <- reduce(
+  variables_to_remove, 
+  ~ .x %>% select(-all_of(.y)), 
+  .init = data
+)
 ```
 
 ## NAs
@@ -116,11 +168,10 @@ nrow(data_clean)
 ```
 
 # PCA
-### Select Only Variables of Interest
+### Create New Dataset retaining only the PCA variables
 ```{r}
-data_selected <- data_clean %>%
-  select_if(is.numeric) %>%
-  select(-Latitude, -Longitude)
+data_PCA <- data_clean %>%
+  select(any_of(variables_to_use_PCA))
 ```
 
 ### Scale the Data
