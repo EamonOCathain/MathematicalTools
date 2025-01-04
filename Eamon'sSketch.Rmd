@@ -18,6 +18,8 @@ library(rsample) # For sampling of data (split, analysis,..)
 library(rpart)
 library(rpart.plot)
 library(randomForest)
+library(tibble)
+library(tidyr)
 ```
 
 ### 
@@ -97,6 +99,7 @@ variables_to_keep <- c(
 
 # Specify the variables to be included in the PCA
 # This will be result in the "data_scaled" dataframe
+
 variables_to_use_PCA <- c(
   ### Location
   #"Longitude",
@@ -162,23 +165,25 @@ variables_to_use_CCA <- c(
 )
 ```
 
-## Cleaning
-### Change Variables Types
+
 ```{r}
-# Check the type of each column
-sapply(data, class)
+str(data)
+```
+
+## Cleaning
+### Change Variable Types and Set Blanks as NA
+```{r}
+# Set numeric variables as numeric
+data$SD.Female.adult.weight..g. <- as.numeric(data$SD.Female.adult.weight..g.)
+
+str(data)
 
 # Convert all blank values of categorical variables to NA
-data %>%
-  mutate(across(where(is.character), ~ na_if(""))) %>%
-  mutate(across(where(is.character), ~ as.factor))
-
-
-# Convert factors to characters and replace "" with NA
-data <- data %>%
-  mutate(across(where(is.character), ~ na_if(.x,""))) %>%  
-  na.omit() %>% 
+data<-data %>%
+  mutate(across(where(is.character), ~ na_if(.x, ""))) %>%
   mutate(across(where(is.character), as.factor))
+
+str(data)
 ```
 
 ### Check for and Remove Duplicates
@@ -276,6 +281,7 @@ result_pca <- PCA(data_PCA,
 names(result_pca) # It's a list
 result_pca
 ```
+
 
 ### Percentage of Information Retained
 ```{r}
@@ -375,29 +381,25 @@ fviz_pca_biplot(result_pca,
              axes = c(3, 4),
              col.ind = clusters_4groups)
 ```
+
 ## Correspondance Analysis
 ### Make Table of the Data
 ```{r}
-# Here I select only the variables to use for the CA and CCA
 data_CCA <- data %>%
+  # Select only the variables to use for the CA and CCA
   select(any_of(variables_to_use_CCA)) %>%
+  # Exclude NAs
   na.omit() 
-  #map(~ as.factor(.x))
-    
-# Make a frequency table containing just 2 categorical variables for the CA
-freq_CA <- table(data_CCA$Mode.of.reproduction, data_CCA$Prefered.Habitat.Type)
-
-# Make a frequency containing all 4 categorical variables to be used
-freq_CCA <- table(data_CCA$Foraging.Mode, data_CCA$Distribution, data_CCA$Mode.of.reproduction, data_CCA$Prefered.Habitat.Type)
-
-
-# Convert factors to characters and replace "" with NA
-data_CCA <- data_CCA %>%
-  mutate(across(where(is.factor), ~ na_if(as.character(.), ""))) %>%  
-  na.omit() %>% 
-  mutate(across(where(is.character), as.factor))
 
 str(data_CCA)
+
+# Make a frequency table containing just 2 categorical variables for the CA
+data_CA <- data_CCA %>%
+  select("Mode.of.reproduction", "Prefered.Habitat.Type")
+freq_CA <- table(data_CCA$Mode.of.reproduction, data_CCA$Prefered.Habitat.Type)
+
+# Make a frequency table containing all 4 categorical variables to be used
+freq_CCA <- table(data_CCA$Foraging.Mode, data_CCA$Distribution, data_CCA$Mode.of.reproduction, data_CCA$Prefered.Habitat.Type)
 ```
 
 ### Represent Data as a Heatmap
@@ -405,6 +407,47 @@ str(data_CCA)
 freq_CA %>%  
   as.matrix() %>% # Data is first transformed into a matrix
   image() # Summary representation
+```
+
+```{r}
+freq_CA
+```
+
+### Make a Tibble
+```{r}
+# Convert to DF as the function wont accept the table
+freq_CA_df <- as.data.frame(freq_CA) %>%
+  # Rename the variables as they lost their names while converting to DF
+  rename(Mode.of.reproduction = `Var1`,  Prefered.Habitat.Type = `Var2`) %>%
+  # Convert factors to character as function wont accept factors
+  mutate(across(where(is.factor), as.character))
+  
+
+freq_CA_long <- freq_CA_df %>%
+  rownames_to_column(var = "Reproduction") %>%
+  pivot_longer(
+    cols = -c("Mode.of.reproduction"),  # All columns except "Mode.of.reproduction"
+    names_to = "Prefered.Habitat.Type",  # Column names become "Prefered.Habitat.Type"
+    values_to = "NbIndividuals"          # Values go into "NbIndividuals"
+  )
+
+str(freq_CA_df)
+
+freq_CA_long <- freq_CA_df %>%
+  pivot_longer(
+    cols = -c("Mode.of.reproduction"),  # Keep Mode.of.reproduction
+    names_to = "Prefered.Habitat.Type",
+    values_to = "NbIndividuals"
+  )
+
+freq_CA_long <- as.data.frame(freq_CA) %>%  # Convert to data frame
+  mutate(across(where(is.factor), as.character)) %>%
+  rownames_to_column(var = "Reproduction") %>%  # Create a column for row names
+  pivot_longer(
+    cols = -c("Mode.of.reproduction"),  # All columns except "Mode.of.reproduction"
+    names_to = "Prefered.Habitat.Type",  # Column names become "Prefered.Habitat.Type"
+    values_to = "NbIndividuals"          # Values go into "NbIndividuals"
+  )
 ```
 
 
