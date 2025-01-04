@@ -153,6 +153,13 @@ variables_to_use_RF <- c(
   #"SD.Female.adult.weight..g.",
   #"Sample.Size.Female.adult.weight"
 )
+
+variables_to_use_CCA <- c(
+  "Distribution",
+  "Foraging.Mode",
+  "Mode.of.reproduction",
+  "Prefered.Habitat.Type"
+)
 ```
 
 ## Cleaning
@@ -161,14 +168,17 @@ variables_to_use_RF <- c(
 # Check the type of each column
 sapply(data, class)
 
-# Convert categorical columns to factors
-data$Species <- as.factor(data$Species)
-data$Genus <- as.factor(data$Genus)
-data$Family<- as.factor(data$Family)
-data$Mode.of.reproduction <- as.factor(data$Mode.of.reproduction)
-data$Foraging.Mode <- as.factor(data$Foraging.Mode)
-data$Distribution <- as.factor(data$Distribution)
-data$Prefered.Habitat.Type <- as.factor(data$Prefered.Habitat.Type)
+# Convert all blank values of categorical variables to NA
+data %>%
+  mutate(across(where(is.character), ~ na_if(""))) %>%
+  mutate(across(where(is.character), ~ as.factor))
+
+
+# Convert factors to characters and replace "" with NA
+data <- data %>%
+  mutate(across(where(is.character), ~ na_if(.x,""))) %>%  
+  na.omit() %>% 
+  mutate(across(where(is.character), as.factor))
 ```
 
 ### Check for and Remove Duplicates
@@ -365,6 +375,38 @@ fviz_pca_biplot(result_pca,
              axes = c(3, 4),
              col.ind = clusters_4groups)
 ```
+## Correspondance Analysis
+### Make Table of the Data
+```{r}
+# Here I select only the variables to use for the CA and CCA
+data_CCA <- data %>%
+  select(any_of(variables_to_use_CCA)) %>%
+  na.omit() 
+  #map(~ as.factor(.x))
+    
+# Make a frequency table containing just 2 categorical variables for the CA
+freq_CA <- table(data_CCA$Mode.of.reproduction, data_CCA$Prefered.Habitat.Type)
+
+# Make a frequency containing all 4 categorical variables to be used
+freq_CCA <- table(data_CCA$Foraging.Mode, data_CCA$Distribution, data_CCA$Mode.of.reproduction, data_CCA$Prefered.Habitat.Type)
+
+
+# Convert factors to characters and replace "" with NA
+data_CCA <- data_CCA %>%
+  mutate(across(where(is.factor), ~ na_if(as.character(.), ""))) %>%  
+  na.omit() %>% 
+  mutate(across(where(is.character), as.factor))
+
+str(data_CCA)
+```
+
+### Represent Data as a Heatmap
+```{r}
+freq_CA %>%  
+  as.matrix() %>% # Data is first transformed into a matrix
+  image() # Summary representation
+```
+
 
 
 # Unsupervised Learning
