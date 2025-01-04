@@ -60,7 +60,7 @@ Therefore one of each pair should be excluded.
 
 ##Initialise Settings of the Analysis
 ```{r}
-# These variables are removed as not required to answer the research questions.
+# These variables are kept as required to answer the research questions.
 # This will result in the "data_filtered" and "data_clean" dataframes.
 variables_to_keep <- c(
   ### Categorical Variables
