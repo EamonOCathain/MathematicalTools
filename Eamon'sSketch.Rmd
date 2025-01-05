@@ -108,12 +108,12 @@ variables_to_use_PCA <- c(
   ### Means and Numerical
   "Average.Female.adult.weight..g.",
   "Mean.F.SVL.adults..mm.",
-  "F.SVL.at.maturity..mm.",
+  #"F.SVL.at.maturity..mm.",
   "Offspring.SVL..mm.",
-  "Mean.Clutch.Size"
-  #"Clutches.per.year",
+  "Mean.Clutch.Size",
+  "Clutches.per.year",
   #"Clutch.Frequency",
-  #"RCM"
+  "RCM"
   
   ### Standard Deviations and Sample Sizes
   #"SD.Female.adult.weight..g.",
@@ -306,34 +306,17 @@ fviz_pca_var(result_pca,
 fviz_pca_var(result_pca,
              axes = c(1, 4))
 ```
-
-### Represent Individuals
-```{r}
-# Representation in the first principal plane
-fviz_pca_ind(result_pca,
-             axes = c(1, 2))
-fviz_pca_ind(result_pca,
-             axes = c(1, 3))
-fviz_pca_ind(result_pca,
-             axes = c(2, 3))
-fviz_pca_ind(result_pca,
-             axes = c(3, 4))
-```
 ### Plot the Individuals with the Variable Arrows and the Categorical Coloring
 ```{r}
 # Representation in the first principal plane
 fviz_pca_biplot(result_pca,
-             axes = c(1, 2),
-             col.ind = data_clean$Distribution)
+             axes = c(1, 2))
 fviz_pca_biplot(result_pca,
-             axes = c(1, 3),
-             col.ind = data_clean$Distribution)
+             axes = c(1, 3))
 fviz_pca_biplot(result_pca,
-             axes = c(2, 3),
-             col.ind = data_clean$Distribution)
+             axes = c(2, 3))
 fviz_pca_biplot(result_pca,
-             axes = c(3, 4),
-             col.ind = data_clean$Distribution)
+             axes = c(3, 4))
 ```
 # K-Means Clustering
 ### 
@@ -382,74 +365,110 @@ fviz_pca_biplot(result_pca,
              col.ind = clusters_4groups)
 ```
 
-## Correspondance Analysis
-### Make Table of the Data
 ```{r}
+
+```
+## Correspondance Analysis
+### Her version
+```{r}
+# Read data
+data_counts <- read.table("donnees_comptage_genre.txt",
+                      sep = ";", 
+                      header = TRUE, 
+                      row.names = 1)
+# Convert to long tibble
+data_counts_long <- data_counts %>% 
+  rownames_to_column(var = "Zone") %>% # Create Zone column from row names
+  # Now we transform into length by aggregating all columns except zone into
+  # 2 columns, one giving the Genus name, one giving the number of individuals
+  pivot_longer(cols = -c("Zone"), # Variable not affected by aggregation
+               names_to = "Genus", # Old column names will be 
+               # brought into a "Genus" variable
+               values_to = "NbIndividuals") # Numbers are aggregated in a new
+# column NbIndiviuds
+dim(data_counts) # Old dimensions
+data_counts_long
+```
+
+### My version - Create Count of Each  
+```{r}
+# Select all four variables to be used in the CA and CCA, omit NAs
 data_CCA <- data %>%
   # Select only the variables to use for the CA and CCA
   select(any_of(variables_to_use_CCA)) %>%
   # Exclude NAs
   na.omit() 
 
-str(data_CCA)
-
 # Make a frequency table containing just 2 categorical variables for the CA
-data_CA <- data_CCA %>%
-  select("Mode.of.reproduction", "Prefered.Habitat.Type")
-freq_CA <- table(data_CCA$Mode.of.reproduction, data_CCA$Prefered.Habitat.Type)
+# With each pair of levels on a seperate row
+freq_CA_long <- data_CCA %>%
+  select(Mode.of.reproduction, Prefered.Habitat.Type) %>%
+  table() %>%
+  as_tibble %>%
+  rename(Freq = "n",
+         Reproduction = "Mode.of.reproduction",
+         Habitat = "Prefered.Habitat.Type")
 
+# Make a tibble with the count of each combination
+freq_CA_short <- data_CCA %>%
+  select(Prefered.Habitat.Type, Mode.of.reproduction) %>%
+  count(Prefered.Habitat.Type, Mode.of.reproduction) %>%  
+  pivot_wider(
+    names_from = Mode.of.reproduction, 
+    values_from = n,  
+    values_fill = 0)
+
+# Convert to dataframe and create rownames (for use creating average profile)
+freq_CA_short_df <- freq_CA_short %>%
+  as.data.frame() %>%  
+  column_to_rownames(var = "Prefered.Habitat.Type")  
+
+freq_CA_long
+freq_CA_short
+freq_CA_short_df
+```
+
+### Represent in ggplot
+```{r}
+ggplot(freq_CA_tibble) +
+  aes(x = Reproduction, y = Habitat, fill = Freq) + # fill says which column is used 
+  # for filling
+  geom_raster() + # represents in raster mode
+  # and dress to make it pretty
+  scale_fill_viridis_c() + # Change color scale
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+### Calculate the Average Profile
+```{r}
+# Create average profile  
+average_profile <- colSums(freq_CA_short_df) / sum(freq_CA_short_df)
+average_profile
+
+# Create the Count  
+count_habitat <- rowSums(freq_CA_short_df)
+count_habitat
+
+# Division Counts
+CA_repartition <- (freq_CA_short_df / count_habitat) %>% 
+  rbind(Average_profile = average_profile)
+CA_repartition
+```
+### CA
+```{r}
+# 
+unique(data$Family)
+result_CA <- CA(freq_CA_short_df, graph = FALSE)
+fviz_eig(result_CA)
+fviz_ca_biplot(result_CA, repel = TRUE)
+```
+
+
+## Canonical Correspondance Analysis
+### Create Data
+```{r}
 # Make a frequency table containing all 4 categorical variables to be used
 freq_CCA <- table(data_CCA$Foraging.Mode, data_CCA$Distribution, data_CCA$Mode.of.reproduction, data_CCA$Prefered.Habitat.Type)
 ```
-
-### Represent Data as a Heatmap
-```{r}
-freq_CA %>%  
-  as.matrix() %>% # Data is first transformed into a matrix
-  image() # Summary representation
-```
-
-```{r}
-freq_CA
-```
-
-### Make a Tibble
-```{r}
-# Convert to DF as the function wont accept the table
-freq_CA_df <- as.data.frame(freq_CA) %>%
-  # Rename the variables as they lost their names while converting to DF
-  rename(Mode.of.reproduction = `Var1`,  Prefered.Habitat.Type = `Var2`) %>%
-  # Convert factors to character as function wont accept factors
-  mutate(across(where(is.factor), as.character))
-  
-
-freq_CA_long <- freq_CA_df %>%
-  rownames_to_column(var = "Reproduction") %>%
-  pivot_longer(
-    cols = -c("Mode.of.reproduction"),  # All columns except "Mode.of.reproduction"
-    names_to = "Prefered.Habitat.Type",  # Column names become "Prefered.Habitat.Type"
-    values_to = "NbIndividuals"          # Values go into "NbIndividuals"
-  )
-
-str(freq_CA_df)
-
-freq_CA_long <- freq_CA_df %>%
-  pivot_longer(
-    cols = -c("Mode.of.reproduction"),  # Keep Mode.of.reproduction
-    names_to = "Prefered.Habitat.Type",
-    values_to = "NbIndividuals"
-  )
-
-freq_CA_long <- as.data.frame(freq_CA) %>%  # Convert to data frame
-  mutate(across(where(is.factor), as.character)) %>%
-  rownames_to_column(var = "Reproduction") %>%  # Create a column for row names
-  pivot_longer(
-    cols = -c("Mode.of.reproduction"),  # All columns except "Mode.of.reproduction"
-    names_to = "Prefered.Habitat.Type",  # Column names become "Prefered.Habitat.Type"
-    values_to = "NbIndividuals"          # Values go into "NbIndividuals"
-  )
-```
-
 
 
 # Unsupervised Learning
@@ -464,7 +483,7 @@ str(data_RF)
 ### Initial Split 
 ```{r}
 split_data <- data_RF %>%
-  initial_split(prop = 0.8, strata = "RCM")
+  initial_split(prop = 0.8, strata = "Distribution")
 
 # Train and Test Data
 train_data <- analysis(split_data)
@@ -474,7 +493,7 @@ test_data <- assessment(split_data)
 ## Random Forests
 ### Create the RF
 ```{r}
-forest <- randomForest(RCM ~ ., # Formula for prediction
+forest <- randomForest(Distribution ~ ., # Formula for prediction
                       data = train_data, # Data for training
                       ntree = 5000, # Number of trees
                       maxnodes = 10, # Number of maximum leaves for each tree
@@ -485,8 +504,8 @@ forest <- randomForest(RCM ~ ., # Formula for prediction
 ### Test the Accuracy
 ```{r}
 # Fast way of computing accuracy with the pipe operator %>% 
-predict(forest, newdata = select(test_data, - RCM)) %>% 
-  table(prediction = ., truth = test_data$RCM) %>% 
+predict(forest, newdata = select(test_data, - Distribution)) %>% 
+  table(prediction = ., truth = test_data$Distribution) %>% 
   {sum(diag(.)) / sum(.)}
 ```
 
