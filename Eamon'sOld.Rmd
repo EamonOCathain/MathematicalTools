@@ -52,3 +52,22 @@ predicted_factor = factor(x = predicted, levels = c(1,2,3), labels = c("Alluvial
 confusion_matrix = table(prediction = predicted_factor, truth = test_data$Prefered.Habitat.Type) 
 confusion_matrix 
 ```
+
+
+```{r}
+# Make a list of all the clusterings
+list_clusters <- list(clusters_2groups, clusters_3groups, clusters_4groups, clusters_5groups)
+
+# Loop through each group and plot the four main axis combinations
+for (number_groups in list_clusters) {
+  # Generate the plots
+  p1 <- fviz_pca_biplot(result_pca, axes = c(1, 2), col.ind = number_groups)
+  p2 <- fviz_pca_biplot(result_pca, axes = c(1, 3), col.ind = number_groups)
+  p3 <- fviz_pca_biplot(result_pca, axes = c(2, 3), col.ind = number_groups)
+  p4 <- fviz_pca_biplot(result_pca, axes = c(3, 4), col.ind = number_groups)
+  
+  # Arrange the plots in a grid
+  grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
+}
+```
+

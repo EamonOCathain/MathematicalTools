@@ -161,15 +161,11 @@ variables_to_use_RF <- c(
 
 variables_to_use_CCA <- c(
   "Distribution",
-  "Foraging.Mode",
-  "Mode.of.reproduction",
-  "Prefered.Habitat.Type"
+  #"Foraging.Mode",
+  #"Mode.of.reproduction",
+  "Prefered.Habitat.Type",
+  "Family"
 )
-```
-
-
-```{r}
-str(data)
 ```
 
 ## Cleaning
@@ -235,8 +231,6 @@ All rows of the RCM column which are NA are also NA for mean female adult weight
 # Select only the desired variables
 data_filtered <- data %>%
   select(any_of(variables_to_keep))
-
-data_PCA
 ```
 
 ## NAs
@@ -379,34 +373,35 @@ clusters_2groups <- kmeans_2groups$cluster
 # Representation in the first principal plane
 fviz_pca_biplot(result_pca,
              axes = c(1, 2),
-             col.ind = clusters_4groups)
+             col.ind = clusters_2groups)
 fviz_pca_biplot(result_pca,
              axes = c(1, 3),
-             col.ind = clusters_4groups)
+             col.ind = clusters_2groups)
 fviz_pca_biplot(result_pca,
              axes = c(2, 3),
-             col.ind = clusters_4groups)
+             col.ind = clusters_2groups)
 fviz_pca_biplot(result_pca,
              axes = c(3, 4),
-             col.ind = clusters_4groups)
-
+             col.ind = clusters_2groups)
 ```
 
+### Comparison of 2 Groups and Distribution
 ```{r}
-# Make a list of all the clusterings
-list_clusters <- list(clusters_2groups, clusters_3groups, clusters_4groups, clusters_5groups)
+# Save each of the plots 
+p1A <- fviz_pca_biplot(result_pca, axes = c(1, 2), col.ind = as.factor(clusters_2groups), col.var = "black", title = "Coloration from K-Means Clustering")
+p1B <- fviz_pca_biplot(result_pca, axes = c(1, 2), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black", title = "Coloration from Distribution")
+p2A <- fviz_pca_biplot(result_pca, axes = c(1, 3), col.ind = as.factor(clusters_2groups), col.var = "black", title = "Coloration from K-Means Clustering")
+p2B <- fviz_pca_biplot(result_pca, axes = c(1, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black", title = "Coloration from Distribution")
+p3A <- fviz_pca_biplot(result_pca, axes = c(2, 3), col.ind = as.factor(clusters_2groups), col.var = "black", title = "Coloration from K-Means Clustering")
+p3B <- fviz_pca_biplot(result_pca, axes = c(2, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black", title = "Coloration from Distribution")
+p4A <- fviz_pca_biplot(result_pca, axes = c(3, 4), col.ind = as.factor(clusters_2groups), col.var = "black", title = "Coloration from K-Means Clustering")
+p4B <- fviz_pca_biplot(result_pca, axes = c(3, 4), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black", title = "Coloration from Distribution")
 
-# Loop through each group and plot the four main axis combinations
-for (number_groups in list_clusters) {
-  # Generate the plots
-  p1 <- fviz_pca_biplot(result_pca, axes = c(1, 2), col.ind = number_groups)
-  p2 <- fviz_pca_biplot(result_pca, axes = c(1, 3), col.ind = number_groups)
-  p3 <- fviz_pca_biplot(result_pca, axes = c(2, 3), col.ind = number_groups)
-  p4 <- fviz_pca_biplot(result_pca, axes = c(3, 4), col.ind = number_groups)
-  
-  # Arrange the plots in a grid
-  grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
-}
+# Plot each axis combination
+grid.arrange(p1A, p1B, nrow = 1, ncol = 2)
+grid.arrange(p2A, p2B, nrow = 1, ncol = 2)
+grid.arrange(p3A, p3B, nrow = 1, ncol = 2)
+grid.arrange(p4A, p4B, nrow = 1, ncol = 2)
 ```
 
 ## Correspondance Analysis
@@ -443,19 +438,18 @@ data_CCA <- data %>%
 # Make a frequency table containing just 2 categorical variables for the CA
 # With each pair of levels on a seperate row
 freq_CA_long <- data_CCA %>%
-  select(Mode.of.reproduction, Prefered.Habitat.Type) %>%
+  select(Family, Prefered.Habitat.Type) %>%
   table() %>%
   as_tibble %>%
   rename(Freq = "n",
-         Reproduction = "Mode.of.reproduction",
          Habitat = "Prefered.Habitat.Type")
 
 # Make a tibble with the count of each combination
 freq_CA_short <- data_CCA %>%
-  select(Prefered.Habitat.Type, Mode.of.reproduction) %>%
-  count(Prefered.Habitat.Type, Mode.of.reproduction) %>%  
+  select(Prefered.Habitat.Type, Family) %>%
+  count(Prefered.Habitat.Type, Family) %>%  
   pivot_wider(
-    names_from = Mode.of.reproduction, 
+    names_from = Family, 
     values_from = n,  
     values_fill = 0)
 
@@ -471,8 +465,8 @@ freq_CA_short_df
 
 ### Represent in ggplot
 ```{r}
-ggplot(freq_CA_tibble) +
-  aes(x = Reproduction, y = Habitat, fill = Freq) + # fill says which column is used 
+ggplot(freq_CA_long) +
+  aes(x = Family, y = Habitat, fill = Freq) + # fill says which column is used 
   # for filling
   geom_raster() + # represents in raster mode
   # and dress to make it pretty
@@ -503,12 +497,11 @@ fviz_eig(result_CA)
 fviz_ca_biplot(result_CA, repel = TRUE)
 ```
 
-
 ## Canonical Correspondance Analysis
 ### Create Data
 ```{r}
 # Make a frequency table containing all 4 categorical variables to be used
-freq_CCA <- table(data_CCA$Foraging.Mode, data_CCA$Distribution, data_CCA$Mode.of.reproduction, data_CCA$Prefered.Habitat.Type)
+freq_CCA <- table(data_CCA$Foraging.Mode, data_CCA$Distribution, data_CCA$Mode.of.Family, data_CCA$Prefered.Habitat.Type)
 ```
 
 
