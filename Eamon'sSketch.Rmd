@@ -22,6 +22,7 @@ library(tibble)
 library(tidyr)
 library(gridExtra)
 library(factoextra)
+library(caret)
 ```
 
 ### 
@@ -145,12 +146,12 @@ variables_to_use_RF <- c(
   ### Numerical Variables
   "Average.Female.adult.weight..g.",
   "Mean.F.SVL.adults..mm.",
-  #"F.SVL.at.maturity..mm.",
+  "F.SVL.at.maturity..mm.",
   "Offspring.SVL..mm.",
   "Mean.Clutch.Size",
-  #"Clutches.per.year"
-  "Clutch.Frequency"
-  #"RCM"
+  "Clutches.per.year",
+  "Clutch.Frequency",
+  "RCM"
   
   ### Standard Deviations and Sample Sizes
   #"SD.F.SVL.adults..mm.",
@@ -160,11 +161,12 @@ variables_to_use_RF <- c(
 )
 
 variables_to_use_CCA <- c(
-  "Distribution",
+  #"Distribution",
   #"Foraging.Mode",
   #"Mode.of.reproduction",
   "Prefered.Habitat.Type",
-  "Family"
+  "Family",
+  "Latitude"
 )
 ```
 
@@ -500,10 +502,35 @@ fviz_ca_biplot(result_CA, repel = TRUE)
 ## Canonical Correspondance Analysis
 ### Create Data
 ```{r}
-# Make a frequency table containing all 4 categorical variables to be used
-freq_CCA <- table(data_CCA$Foraging.Mode, data_CCA$Distribution, data_CCA$Mode.of.Family, data_CCA$Prefered.Habitat.Type)
+mean_latitude_df <- data_CCA %>%
+  group_by(Prefered.Habitat.Type) %>%           
+  summarise(mean_latitude_abs = mean(abs(Latitude), na.rm = TRUE)) %>% 
+  as.data.frame()   
+
+mean_latitude_df
 ```
 
+### Run CCA
+```{r}
+# Make a frequency table containing all 4 categorical variables to be used
+result_CCA <- cca(freq_CA_short_df ~ mean_latitude_abs,
+                    data = mean_latitude_df)
+plot(result_CCA)
+
+scores_CCA = scores(result_CCA)
+ordiArrowMul(scores_CCA$biplot)
+anova(result_CCA)
+anova(result_CCA,by="margin")
+```
+
+### Plot the Tricor
+```{r}
+table_reduced_CCA <- result_CCA$CCA$u
+## Correlations
+corr_pc_chemi = cor(table_reduced_CCA, mean_latitude_df[, c("mean_latitude")])
+corrplot(corr_pc_chemi)
+```
+### 
 
 # Unsupervised Learning
 ##Split Data
@@ -541,6 +568,29 @@ forest <- randomForest(Distribution ~ ., # Formula for prediction
 predict(forest, newdata = select(test_data, - Distribution)) %>% 
   table(prediction = ., truth = test_data$Distribution) %>% 
   {sum(diag(.)) / sum(.)}
+```
+
+### Find the Variable Importance
+```{r}
+varImpPlot(forest)
+```
+### Hyper Parameter Tuning
+```{r}
+# Initialisation
+params_CV <- trainControl(method = "repeatedcv", 
+                          number = 10, 
+                          repeats = 5)
+
+predictor_forest <- caret::train(Distribution ~ ., 
+                                 data = data_RF, 
+                                 method = "rf", 
+                                 metric = "Accuracy", 
+                                 trControl = params_CV, 
+                                 tuneGrid = expand.grid(mtry = 2:12))
+
+as.data.frame(predictor_forest$results) %>% 
+  ggplot(aes(x = mtry, y = Accuracy)) +
+  geom_point()
 ```
 
 
