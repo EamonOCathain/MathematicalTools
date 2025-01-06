@@ -246,7 +246,58 @@ fviz_eig(result_pca, choice = "variance")
 corrplot(result_pca$var$cor)
 ```
 
+### Plot the Individuals with the Variable Arrows and the Categorical Coloring
+By altering the object Color_label we were able to check the effect of coloring with each of the four main categorical variables (Distribution, Habitat type, Foraging mode and Reproductive type). It was found that distribution produced the clearest clustering with the least noise. Therefore distribution was taken forward as a potential categorical variable which can account for much of the variation.
+```{r}
+Color_label <- "Distribution"
+
+### Plot all four on one plot
+# Generate the plots
+p1 <- fviz_pca_biplot(result_pca, axes = c(1, 2), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
+p2 <- fviz_pca_biplot(result_pca, axes = c(1, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
+p3 <- fviz_pca_biplot(result_pca, axes = c(2, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
+p4 <- fviz_pca_biplot(result_pca, axes = c(3, 4), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
+
+# Arrange the plots in a grid
+grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
+```
+
+# K-Means Clustering
+### Create Clusters for 2-5 Groups Out of Curiosity
+```{r}
+# K-Means Clustering
 ### 
+```{r}
+# Create Clusters For Four Groups
+first_kmeans <- data_PCA %>% 
+  kmeans(centers = 4)
+
+# Within Group Inertia
+first_kmeans$tot.withinss
+
+kmeans_5groups<- data_PCA %>%
+  kmeans(centers = 5)
+
+kmeans_4groups<- data_PCA %>%
+  kmeans(centers = 4)
+
+kmeans_3groups<- data_PCA %>%
+  kmeans(centers=3)
+
+kmeans_2groups <- data_PCA %>%
+  kmeans(centers=2)
+
+# Extract the Clustering Groups
+clusters_5groups <- kmeans_5groups$cluster
+clusters_4groups <- kmeans_4groups$cluster
+clusters_3groups <- kmeans_3groups$cluster
+clusters_2groups <- kmeans_2groups$cluster
+```
+
+### 
+```{r}
+
+```
 
 
 
