@@ -284,8 +284,9 @@ result_pca <- PCA(data_PCA,
 
 ### Result of PCA
 ```{r}
-names(result_pca) # It's a list
 result_pca
+result_pca$eig
+result_pca$var
 ```
 
 ### Percentage of Information Retained
@@ -296,8 +297,6 @@ fviz_eig(result_pca, choice = "variance")
 ```{r}
 corrplot(result_pca$var$cor)
 ```
-
-
 
 ### Visualise the PCA
 ```{r}

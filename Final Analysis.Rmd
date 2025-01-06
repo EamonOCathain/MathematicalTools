@@ -219,7 +219,7 @@ data_PCA_all_vars <- data %>%
 ```
 
 ### Visualise with a Correlation
-This shows the correlation of each variables in PCA data with 
+This shows the correlation of each variable pairs in PCA data.
 ```{r}
 ### CorrPlot
 data_PCA %>% 
@@ -227,10 +227,26 @@ data_PCA %>%
   corrplot() # Then graph this matrix
 ```
 
+### Run the PCA
+```{r}
+# Run the PCA
+result_pca <- PCA(data_PCA, 
+               scale.unit = TRUE, # Option to center and scale data (useless here)
+               ncp = 18, # Number of components to keep (here, all)
+               graph = FALSE)
 
+# Results of the PCA
+result_pca$eig
+result_pca$var
 
+# Plot the Scree Plot to Show Variance Explained by Each Dimension
+fviz_eig(result_pca, choice = "variance")
 
+# Plot the Correlation of Each Variable and the Dimension
+corrplot(result_pca$var$cor)
+```
 
+### 
 
 
 
