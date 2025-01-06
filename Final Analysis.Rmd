@@ -1,0 +1,215 @@
+---
+title: "Life History Strategies in Lizards: Insights into
+the Slow-Fast Continuum"
+Author: Eamon O Cathain and Richard Slevin
+output: html_notebook
+---
+
+# Set Up
+## Initilisation
+### Load Libraries
+```{r}
+library(tidyverse)
+library(corrplot) # For correlation plots
+library(FactoMineR) # For PCA
+library(factoextra) # For PCA plots
+library(vegan) # For CCA
+library(ggplot2)
+library(rsample) # For sampling of data (split, analysis,..)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+library(tibble)
+library(tidyr)
+library(gridExtra)
+library(factoextra)
+library(caret)
+```
+
+### Knitting Configuration
+```{r}
+# Set to render chunks during the knitting process
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+### Set Up the Environment
+```{r}
+# Clear Environment
+rm(list = ls())
+
+# Set Working Directory
+setwd("/Users/eamon/Desktop/MathToolsProject/R_Project/MathematicalTools/")
+
+# Load Data
+data <- read.csv("lizard.csv")
+```
+
+### View the Data
+```{r}
+str(data)
+```
+
+
+### Choose Variables To Be Used in Each Analysis
+This section allows the user to comment in or out variables to be used in each analysis. This increases the ease of the workflow as the variables can easily be changed with a knock on effect on the rest of the code.  
+```{r}
+variables_to_use_PCA <- c(
+  ### Location
+  #"Longitude",
+  #"Latitude",
+  
+  ### Means and Numerical
+  "Average.Female.adult.weight..g.",
+  "Mean.F.SVL.adults..mm.",
+  #"F.SVL.at.maturity..mm.",
+  "Offspring.SVL..mm.",
+  "Mean.Clutch.Size",
+  "Clutches.per.year",
+  #"Clutch.Frequency",
+  "RCM"
+  
+  ### Standard Deviations and Sample Sizes
+  #"SD.Female.adult.weight..g.",
+  #"SD.F.SVL.adults..mm.",
+  #"Sample.Size.Female.adult.weight",
+  #"Sample.size.Mean.F.SVL.adults",
+)
+
+# Specify the Variables to Use in the Random Forests Analysis
+variables_to_use_RF <- c(
+  ### Categorical Variables
+  #"Species",
+  #"Genus",
+  #"Family",
+  #"Population",
+  "Mode.of.reproduction",
+  #"Source",
+  "Distribution",
+  "Prefered.Habitat.Type",
+  "Foraging.Mode",
+  "RCM",
+  
+  ### Location
+  #"Longitude",
+  #"Latitude",
+  
+  ### Numerical Variables
+  "Average.Female.adult.weight..g.",
+  "Mean.F.SVL.adults..mm.",
+  "F.SVL.at.maturity..mm.",
+  "Offspring.SVL..mm.",
+  "Mean.Clutch.Size",
+  "Clutches.per.year",
+  "Clutch.Frequency",
+  "RCM"
+  
+  ### Standard Deviations and Sample Sizes
+  #"SD.F.SVL.adults..mm.",
+  #"Sample.size.Mean.F.SVL.adults",
+  #"SD.Female.adult.weight..g.",
+  #"Sample.Size.Female.adult.weight"
+)
+
+variables_to_use_CCA <- c(
+  #"Distribution",
+  #"Foraging.Mode",
+  #"Mode.of.reproduction",
+  "Prefered.Habitat.Type",
+  "Family",
+  "Latitude"
+)
+```
+
+## Cleaning and Preprocessing
+### 
+## Cleaning
+### Change Variable Types
+```{r}
+# This variables was input as a character, but it should be numeric
+data$SD.Female.adult.weight..g. <- as.numeric(data$SD.Female.adult.weight..g.)
+```
+
+### Set Blanks in Categorical Variables as NA
+```{r}
+# Convert the blank values of categorical variables to NA
+data<-data %>%
+  mutate(across(where(is.character), ~ na_if(.x, ""))) %>%
+  mutate(across(where(is.character), as.factor))
+```
+
+### Check for and Remove Duplicates
+```{r}
+# Save duplicates as an object
+duplicates <- data[duplicated(data), ]
+
+# Remove duplicates
+data <- data[!duplicated(data), ]
+```
+
+### Visualise the Proportion of Each Variable Which is NA
+By doing this we found that most of the numeric variables had a high proportion of NA's, with some such as RCM having over 50%. Therefore exclusion of all rows containing NA's was likely to drastically reduce the size dataset and cause data loss. The number of rows in the original dataset was 734 and the number after exclusion of all NAs was 146. Therefore the NA's were removed separately for each analysis using only the variables required for that analysis, which helped to reduce data loss.
+```{r}
+# Calculate percentage of NA values for each column
+na_percentage <- colSums(is.na(data)) / nrow(data) * 100
+
+# Convert NA percentages to a data frame
+na_df <- data.frame(
+  Column = names(na_percentage),
+  NA_Percentage = na_percentage
+)
+
+# Create bar plot
+ggplot(na_df, aes(x = Column, y = NA_Percentage)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(
+    title = "Percentage of NA Values per Column",
+    x = "Columns",
+    y = "Percentage (%)"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1) # Rotate x-axis labels
+  )
+
+# Print the number of rows in the full dataset
+print(paste("Number of rows in full dataset =", nrow(data)))
+
+# Print the number of rows after NA removal
+print(paste("Number of rows after NA removal on entire dataset =", nrow(na.omit(data))))
+```
+
+# PCA
+### Create New Dataset retaining only the PCA variables
+Here a new subset of the data is created for the PCA. The PCA data was cleaned of all rows containing NA's and standardised such that each variable has mean 0 and variance 1 (which allows for comparison of variables on different scales in the PCA). A second data set was created containing the rows retained after NA omition of the PCA data, but containing all the original variables. This is later used to color the PCA visualisations with categorical variables.
+```{r}
+# Create the new PCA dataset
+data_PCA <- data %>%
+  select(any_of(variables_to_use_PCA)) %>% # Filter for the variables to be used in the PCA
+  na.omit() %>% # Omit NA's
+  mutate_all(.funs = scale) # Scale the data for the PCA
+
+# Create ancillary dataset with all original variables but filtered to keep only rows present in the PCA dataset
+# This will be used for coloration of the PCA graphs with categorical variables
+data_PCA_all_vars <- data %>%
+  filter(row_number() %in% rownames(data_PCA))
+```
+
+### Visualise with a Correlation
+
+```{r}
+### CorrPlot
+data_PCA %>% 
+  cor(use="pairwise.complete.obs") %>% # Calculate the empirical correlation matrix
+  corrplot() # Then graph this matrix
+```
+
+
+
+
+
+
+
+
+
+

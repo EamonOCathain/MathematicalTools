@@ -233,7 +233,7 @@ All rows of the RCM column which are NA are also NA for mean female adult weight
 # Select only the desired variables
 data_filtered <- data %>%
   select(any_of(variables_to_keep))
-```
+``` 
 
 ## NAs
 ### Check Amount of Data Loss If All NAs Removed
