@@ -89,8 +89,8 @@ variables_to_keep <- c(
   #"F.SVL.at.maturity..mm.", # Removed as "Mean.F.SVL.adults..mm." is almost identical.
   "Offspring.SVL..mm.",
   "Mean.Clutch.Size",
-  #"Clutches.per.year",
-  "Clutch.Frequency",
+  "Clutches.per.year",
+  #"Clutch.Frequency",
   "RCM"
   
   ### Standard Deviations and Sample Sizes

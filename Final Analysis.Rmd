@@ -50,79 +50,6 @@ data <- read.csv("lizard.csv")
 str(data)
 ```
 
-
-### Choose Variables To Be Used in Each Analysis
-This section allows the user to comment in or out variables to be used in each analysis. This increases the ease of the workflow as the variables can easily be changed with a knock on effect on the rest of the code.  
-```{r}
-variables_to_use_PCA <- c(
-  ### Location
-  #"Longitude",
-  #"Latitude",
-  
-  ### Means and Numerical
-  "Average.Female.adult.weight..g.",
-  "Mean.F.SVL.adults..mm.",
-  #"F.SVL.at.maturity..mm.",
-  "Offspring.SVL..mm.",
-  "Mean.Clutch.Size",
-  "Clutches.per.year",
-  #"Clutch.Frequency",
-  "RCM"
-  
-  ### Standard Deviations and Sample Sizes
-  #"SD.Female.adult.weight..g.",
-  #"SD.F.SVL.adults..mm.",
-  #"Sample.Size.Female.adult.weight",
-  #"Sample.size.Mean.F.SVL.adults",
-)
-
-# Specify the Variables to Use in the Random Forests Analysis
-variables_to_use_RF <- c(
-  ### Categorical Variables
-  #"Species",
-  #"Genus",
-  #"Family",
-  #"Population",
-  "Mode.of.reproduction",
-  #"Source",
-  "Distribution",
-  "Prefered.Habitat.Type",
-  "Foraging.Mode",
-  "RCM",
-  
-  ### Location
-  #"Longitude",
-  #"Latitude",
-  
-  ### Numerical Variables
-  "Average.Female.adult.weight..g.",
-  "Mean.F.SVL.adults..mm.",
-  "F.SVL.at.maturity..mm.",
-  "Offspring.SVL..mm.",
-  "Mean.Clutch.Size",
-  "Clutches.per.year",
-  "Clutch.Frequency",
-  "RCM"
-  
-  ### Standard Deviations and Sample Sizes
-  #"SD.F.SVL.adults..mm.",
-  #"Sample.size.Mean.F.SVL.adults",
-  #"SD.Female.adult.weight..g.",
-  #"Sample.Size.Female.adult.weight"
-)
-
-variables_to_use_CCA <- c(
-  #"Distribution",
-  #"Foraging.Mode",
-  #"Mode.of.reproduction",
-  "Prefered.Habitat.Type",
-  "Family",
-  "Latitude"
-)
-```
-
-## Cleaning and Preprocessing
-### 
 ## Cleaning
 ### Change Variable Types
 ```{r}
@@ -179,7 +106,103 @@ print(paste("Number of rows in full dataset =", nrow(data)))
 print(paste("Number of rows after NA removal on entire dataset =", nrow(na.omit(data))))
 ```
 
+### Choose Variables To Be Used in Each Analysis
+This section allows the user to comment in or out variables to be used in each analysis. This increases the ease of the workflow as the variables can easily be changed with a knock on effect on the rest of the code.  
+```{r}
+
+
+# Specify the Variables to Use in the Random Forests Analysis
+variables_to_use_RF <- c(
+  ### Categorical Variables
+  #"Species",
+  #"Genus",
+  #"Family",
+  #"Population",
+  "Mode.of.reproduction",
+  #"Source",
+  "Distribution",
+  "Prefered.Habitat.Type",
+  "Foraging.Mode",
+  "RCM",
+  
+  ### Location
+  #"Longitude",
+  #"Latitude",
+  
+  ### Numerical Variables
+  "Average.Female.adult.weight..g.",
+  "Mean.F.SVL.adults..mm.",
+  "F.SVL.at.maturity..mm.",
+  "Offspring.SVL..mm.",
+  "Mean.Clutch.Size",
+  "Clutches.per.year",
+  "Clutch.Frequency",
+  "RCM"
+  
+  ### Standard Deviations and Sample Sizes
+  #"SD.F.SVL.adults..mm.",
+  #"Sample.size.Mean.F.SVL.adults",
+  #"SD.Female.adult.weight..g.",
+  #"Sample.Size.Female.adult.weight"
+)
+
+variables_to_use_CCA <- c(
+  #"Distribution",
+  #"Foraging.Mode",
+  #"Mode.of.reproduction",
+  "Prefered.Habitat.Type",
+  "Family",
+  "Latitude"
+)
+```
+
 # PCA
+### Choose the Variables to be Used in the PCA
+This saves the variables to be used in the PCA as an object. The variables used are easily altered by commenting them in or out. Only numerical variables are considered as candidates as PCA can only use numerical variables. Where two variables describe the same trait, one of them was removed. This was done in order to avoid bias in the PCA by over emphasising particular traits.
+
+"Clutch.Frequency" describes whether a species is single or multiple brooded (i.e lays a clutch once or several times during the breeding season) and "Clutches.Per.Year" is the number of clutches laid per year. These two variables describe the same trait (clutches per year/breeding season) in different ways. Clutch frequency describes it as between 0.5 (which we have guessed means not certain to produce a clutch every breeding season), 1 (one clutch per season) or 2 (more than 1 clutch per breeding season). In contrast clutches per year simply states the number of clutches produced each year. As this is the more high definition variable it was decided to keep it in the analysis instead of clutch frequency.
+
+"F.SVL.at.maturity..mm" describes the same trait as "Mean.F.SVL.adults..mm.". A correlation of these two variables revealed a 97% correlation. Therefore, "F.SVL.at.maturity..mm." was randomly chosen to be removed.
+
+Sample sizes and standard deviations were removed from the analysis as they were not thought to be relevant. 
+```{r}
+variables_to_use_PCA <- c(
+  ### Location
+  #"Longitude",
+  #"Latitude",
+  
+  ### Means and Numerical
+  "Average.Female.adult.weight..g.",
+  "Mean.F.SVL.adults..mm.",
+  #"F.SVL.at.maturity..mm.",
+  "Offspring.SVL..mm.",
+  "Mean.Clutch.Size",
+  "Clutches.per.year",
+  #"Clutch.Frequency",
+  "RCM"
+  
+  ### Standard Deviations and Sample Sizes
+  #"SD.Female.adult.weight..g.",
+  #"SD.F.SVL.adults..mm.",
+  #"Sample.Size.Female.adult.weight",
+  #"Sample.size.Mean.F.SVL.adults",
+)
+```
+
+### Investigation of the Similar Variables
+```{r}
+# Are clutch frequency and clutches per year the same?  
+cor(data$Clutch.Frequency, data$Clutches.per.year, use = "complete.obs") # Correlation of the two variables
+unique(data$Clutch.Frequency) # Unique values of clutch frequency
+unique(data$Clutches.per.year) # Unique values of clutches per year
+
+plot(data$Clutch.Frequency~data$Clutches.per.year)
+
+# Are "F.SVL.at.maturity..mm." and "Mean.F.SVL.adults..mm." the same?
+cor(data$F.SVL.at.maturity..mm., data$Mean.F.SVL.adults..mm., use="complete.obs")
+plot(data$F.SVL.at.maturity..mm.~data$Mean.F.SVL.adults..mm.)
+```
+
 ### Create New Dataset retaining only the PCA variables
 Here a new subset of the data is created for the PCA. The PCA data was cleaned of all rows containing NA's and standardised such that each variable has mean 0 and variance 1 (which allows for comparison of variables on different scales in the PCA). A second data set was created containing the rows retained after NA omition of the PCA data, but containing all the original variables. This is later used to color the PCA visualisations with categorical variables.
 ```{r}
@@ -196,7 +219,7 @@ data_PCA_all_vars <- data %>%
 ```
 
 ### Visualise with a Correlation
-
+This shows the correlation of each variables in PCA data with 
 ```{r}
 ### CorrPlot
 data_PCA %>% 
