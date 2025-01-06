@@ -312,7 +312,7 @@ fviz_pca_var(result_pca,
 ```
 ### Plot the Individuals with the Variable Arrows and the Categorical Coloring
 ```{r}
-Color_label <- "Distribution"
+Color_labels <- list("Distribution", "Preferred.Habitat.Type,"
 
 # Plot on Seperate Plots
 fviz_pca_biplot(result_pca,
@@ -330,10 +330,10 @@ fviz_pca_biplot(result_pca,
 
 ### Plot all four on one plot
 # Generate the plots
-p1 <- fviz_pca_biplot(result_pca, axes = c(1, 2), col.ind = data_PCA_all_vars[[Color_label]])
-p2 <- fviz_pca_biplot(result_pca, axes = c(1, 3), col.ind = data_PCA_all_vars[[Color_label]])
-p3 <- fviz_pca_biplot(result_pca, axes = c(2, 3), col.ind = data_PCA_all_vars[[Color_label]])
-p4 <- fviz_pca_biplot(result_pca, axes = c(3, 4), col.ind = data_PCA_all_vars[[Color_label]])
+p1 <- fviz_pca_biplot(result_pca, axes = c(1, 2), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
+p2 <- fviz_pca_biplot(result_pca, axes = c(1, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
+p3 <- fviz_pca_biplot(result_pca, axes = c(2, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
+p4 <- fviz_pca_biplot(result_pca, axes = c(3, 4), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
 
 # Arrange the plots in a grid
 grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
