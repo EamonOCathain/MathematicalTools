@@ -71,3 +71,10 @@ for (number_groups in list_clusters) {
 }
 ```
 
+### Plot the Tricor
+```{r}
+table_reduced_CCA <- result_CCA$CCA$u
+## Correlations
+corr_pc_chemi = cor(table_reduced_CCA, mean_latitude_df[, c("mean_latitude")])
+corrplot(corr_pc_chemi)
+```
