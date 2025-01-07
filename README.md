@@ -45,8 +45,9 @@ The following libraries are used in the analysis and must be installed:
 </p>
 <pre style="font-size:14px; background-color:#f8f8f8; padding:10px; border-radius:4px;">
 install.packages(c("tidyverse", "corrplot", "FactoMineR", "factoextra", 
-                   "vegan", "ggplot2", "rsample", "rpart", 
-                   "rpart.plot", "randomForest"))
+                    "vegan", "ggplot2", "rsample", "rpart", "rpart.plot", 
+                    "randomForest", "tibble", "tidyr", "gridExtra", "factoextra", 
+                    "caret", "cluster"))
 </pre>
 
 <h2 style="font-size:24px;">Usage</h2>
