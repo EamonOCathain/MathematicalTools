@@ -211,7 +211,8 @@ result_pca$var
 fviz_eig(result_pca, choice = "variance")
 
 # Plot the Correlation of Each Variable and the Dimension
-corrplot(result_pca$var$cor)
+corr_plot_pca <-corrplot(result_pca$var$cor)
+corr_plot_pca
 ```
 
 ### Plot the Individuals with the Variable Arrows and the Categorical Coloring
@@ -228,7 +229,8 @@ p3 <- fviz_pca_biplot(result_pca, axes = c(2, 3), col.ind = data_PCA_all_vars[[C
 p4 <- fviz_pca_biplot(result_pca, axes = c(3, 4), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
 
 # Arrange the plots in a grid
-grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
+dist_plot <- grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
+dist_plot
 
 ### Prefered Habitat Type
 Color_label <- "Prefered.Habitat.Type"
@@ -268,6 +270,8 @@ p4 <- fviz_pca_biplot(result_pca, axes = c(3, 4), col.ind = data_PCA_all_vars[[C
 
 # Arrange the plots in a grid
 grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
+
+ggsave("PCA_plot_distribution.png", plot = dist_plot, width = 10, height = 8.4, units = "in", dpi = 500)
 ```
 
 # K-Means Clustering
@@ -279,8 +283,10 @@ kmeans_2groups <- data_PCA %>%
 
 # Calculate the within group inertia
 # Within Group Inertia
+kmeans_2groups$totss
 kmeans_2groups$tot.withinss
-
+kmeans_2groups$withinss
+kmeans_2groups$betweenss
 # Create Clusters For More Groups Out Curiosity
 first_kmeans <- data_PCA %>% 
   kmeans(centers = 4, iter.max = 1000)
@@ -304,6 +310,8 @@ clusters_2groups <- kmeans_2groups$cluster
 ### Plot a Comparison of the 2 Group K-Means Clustering vs The Coloration Applied by the "Distribution" Variable
 The k-means method found clusters which visually seem very similar to those applied by the Distribution category.
 ```{r}
+Color_label = "Distribution"
+
 # Define a color palette for consistency
 custom_palette <- c("red", "blue", "green", "orange")
 
@@ -422,7 +430,7 @@ as.data.frame(predictor_forest$results) %>%
 ```
 
 ### Create the RF
-Use 5000 random trees and mtry value 4.
+Use 5000 random trees and mtry value 3.
 ```{r}
 forest <- randomForest(Distribution ~ ., # Formula for prediction
                       data = train_data, # Data for training
@@ -433,30 +441,37 @@ forest <- randomForest(Distribution ~ ., # Formula for prediction
 ```
 
 ### Test the Accuracy
-Accuracy found to be 
+Accuracy found to be 0.829
 ```{r}
 # Fast way of computing accuracy with the pipe operator %>% 
-predict(forest, newdata = select(test_data, - Distribution)) %>% 
-  table(prediction = ., truth = test_data$Distribution) %>% 
+confusion_matrix <-predict(forest, newdata = select(test_data, - Distribution)) %>% 
+  table(prediction = ., truth = test_data$Distribution) 
+
+accuracy <- confusion_matrix %>%
   {sum(diag(.)) / sum(.)}
+
+confusion_matrix
+accuracy
 ```
 
 ### Find the Variable Importance
 Found the Mean Clutch Size caused the highest mean decrease in accuracy and mean decrease in the Gini coefficient of impurity. Therefore it is the variable contributing the most to the classification. 
 
 ```{r}
-varImpPlot(forest)
-```
+png("Variable_importance.png", width = 12, height = 8, units = "in", res = 500)
+varImpPlot(
+  forest, 
+  main = "Variable Importance Plot Random Forests",
+  cex = 0.7,
+  
+)
+dev.off()
 
-```{r}
-RF_iterations_df
-```
-
-### Find the Variable Importance
-Found the Mean Clutch Size caused the highest mean decrease in accuracy and mean decrease in the Gini coefficient of impurity. Therefore it is the variable contributing the most to the classification. 
-
-```{r}
-varImpPlot(forest)
+varImpPlot(
+  forest, 
+  main = "Variable Importance Plot Random Forests",
+  cex = 0.7  # Adjust font size
+)
 ```
 
 ## KNN 
@@ -470,6 +485,126 @@ first_test_set <- assessment(first_split)
 dim(first_test_set); head(first_test_set)
 ```
 
+# Appendix - CA and CCA
+This section is not presented in the main text. We tried to do a CA and CCA but the lack of environmental variables proved to be an obstacle. Absolute latitude was averaged for each habitat in order to test the effect of latitude/climate on the association between families and particular habitats. However no association was found and we were unsure if averaging the value of latitudes for the habitats was appropriate.  
+
+# Variables to use in the Analysis
+```{r}
+variables_to_use_CCA <- c(
+  #"Distribution",
+  #"Foraging.Mode",
+  #"Mode.of.reproduction",
+  "Prefered.Habitat.Type",
+  "Family",
+  "Latitude"
+)
+```
+
+
+### Intiial Data Wrangling 
+```{r}
+# Select all four variables to be used in the CA and CCA, omit NAs
+data_CCA <- data %>%
+  # Select only the variables to use for the CA and CCA
+  select(any_of(variables_to_use_CCA)) %>%
+  # Exclude NAs
+  na.omit() 
+
+# Make a frequency table containing just 2 categorical variables for the CA
+# With each pair of levels on a seperate row
+freq_CA_long <- data_CCA %>%
+  select(Family, Prefered.Habitat.Type) %>%
+  table() %>%
+  as_tibble %>%
+  rename(Freq = "n",
+         Habitat = "Prefered.Habitat.Type")
+
+# Make a tibble with the count of each combination
+freq_CA_short <- data_CCA %>%
+  select(Prefered.Habitat.Type, Family) %>%
+  count(Prefered.Habitat.Type, Family) %>%  
+  pivot_wider(
+    names_from = Family, 
+    values_from = n,  
+    values_fill = 0)
+
+# Convert to dataframe and create rownames (for use creating average profile)
+freq_CA_short_df <- freq_CA_short %>%
+  as.data.frame() %>%  
+  column_to_rownames(var = "Prefered.Habitat.Type")  
+
+freq_CA_long
+freq_CA_short
+freq_CA_short_df
+```
+
+### Represent in ggplot
+```{r}
+ggplot(freq_CA_long) +
+  aes(x = Family, y = Habitat, fill = Freq) + # fill says which column is used 
+  # for filling
+  geom_raster() + # represents in raster mode
+  # and dress to make it pretty
+  scale_fill_viridis_c() + # Change color scale
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+### Calculate the Average Profile
+```{r}
+# Create average profile  
+average_profile <- colSums(freq_CA_short_df) / sum(freq_CA_short_df)
+average_profile
+
+# Create the Count  
+count_habitat <- rowSums(freq_CA_short_df)
+count_habitat
+
+# Division Counts
+CA_repartition <- (freq_CA_short_df / count_habitat) %>% 
+  rbind(Average_profile = average_profile)
+CA_repartition
+
+ggplot(freq_CA_long) +
+  aes(x = Family, y = Habitat, fill = Freq) + # fill says which column is used 
+  # for filling
+  geom_raster() + # represents in raster mode
+  # and dress to make it pretty
+  scale_fill_viridis_c() + # Change color scale
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+### CA
+```{r}
+# 
+unique(data$Family)
+result_CA <- CA(freq_CA_short_df, graph = FALSE)
+fviz_eig(result_CA)
+fviz_ca_biplot(result_CA, repel = TRUE)
+```
+
+## Canonical Correspondance Analysis
+### Create Data
+```{r}
+mean_latitude_df <- data_CCA %>%
+  group_by(Prefered.Habitat.Type) %>%           
+  summarise(mean_latitude_abs = mean(abs(Latitude), na.rm = TRUE)) %>% 
+  as.data.frame()   
+
+mean_latitude_df
+```
+
+### Run CCA
+```{r}
+# Make a frequency table containing all 4 categorical variables to be used
+result_CCA <- cca(freq_CA_short_df ~ mean_latitude_abs,
+                    data = mean_latitude_df)
+plot(result_CCA)
+
+scores_CCA = scores(result_CCA)
+ordiArrowMul(scores_CCA$biplot)
+anova(result_CCA)
+anova(result_CCA,by="margin")
+```
 
 
 
