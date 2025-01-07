@@ -142,18 +142,8 @@ variables_to_use_PCA <- c(
 ```
 
 ### Investigation of the Similar Variables
+To investigate the correlations between variables.
 ```{r}
-# Are clutch frequency and clutches per year the same?  
-cor(data$Clutch.Frequency, data$Clutches.per.year, use = "complete.obs") # Correlation of the two variables
-unique(data$Clutch.Frequency) # Unique values of clutch frequency
-unique(data$Clutches.per.year) # Unique values of clutches per year
-
-plot(data$Clutch.Frequency~data$Clutches.per.year)
-
-# Are "F.SVL.at.maturity..mm." and "Mean.F.SVL.adults..mm." the same?
-cor(data$F.SVL.at.maturity..mm., data$Mean.F.SVL.adults..mm., use="complete.obs")
-plot(data$F.SVL.at.maturity..mm.~data$Mean.F.SVL.adults..mm.)
-
 data %>% 
   select(where(is.numeric), -Latitude, -Longitude, -SD.Female.adult.weight..g., -SD.F.SVL.adults..mm., -Sample.Size.Female.adult.weight, -Sample.size.Mean.F.SVL.adults, -Sample.size.Clutch.Size.) %>%
   cor(use="pairwise.complete.obs") %>% # Calculate the empirical correlation matrix
@@ -161,7 +151,6 @@ data %>%
 ```
 
 ### Create New Dataset retaining only the PCA variables
-
 Here a new subset of the data is created for the PCA. The PCA data was cleaned of all rows containing NA's and standardised such that each variable has mean 0 and variance 1 (which allows for comparison of variables on different scales in the PCA). A second data set was created containing the rows retained after NA omition of the PCA data, but containing all the original variables. This is later used to color the PCA visualisations with categorical variables.
 
 ```{r}
@@ -219,59 +208,26 @@ corr_plot_pca
 By altering the object Color_label we were able to check the effect of coloring with each of the four main categorical variables (Distribution, Habitat type, Foraging mode and Reproductive type). It was found that distribution produced the clearest clustering with the least noise. Therefore distribution was taken forward as a potential categorical variable which can account for much of the variation. This code could of been shortened using a loop, however it affected the scaling of the axes and the font size and we were unable to resolve this issue.
 
 ```{r}
-Color_label <- "Distribution"
+# Define Graphing Function
+plot_pca_with_color <- function(color_label) {
+  p1 <- fviz_pca_biplot(result_pca, axes = c(1, 2), col.ind = data_PCA_all_vars[[color_label]], col.var = "black")
+  p2 <- fviz_pca_biplot(result_pca, axes = c(1, 3), col.ind = data_PCA_all_vars[[color_label]], col.var = "black")
+  p3 <- fviz_pca_biplot(result_pca, axes = c(2, 3), col.ind = data_PCA_all_vars[[color_label]], col.var = "black")
+  p4 <- fviz_pca_biplot(result_pca, axes = c(3, 4), col.ind = data_PCA_all_vars[[color_label]], col.var = "black")
+  grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
+}
 
-### Plot all four on one plot
-# Generate the plots
-p1 <- fviz_pca_biplot(result_pca, axes = c(1, 2), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
-p2 <- fviz_pca_biplot(result_pca, axes = c(1, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
-p3 <- fviz_pca_biplot(result_pca, axes = c(2, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
-p4 <- fviz_pca_biplot(result_pca, axes = c(3, 4), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
-
-# Arrange the plots in a grid
-dist_plot <- grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
+# Use function with Distribution
+dist_plot <- plot_pca_with_color("Distribution")
+# Save Plot
+ggsave("PCA_plot_distribution.png", plot = dist_plot, width = 10, height = 8.4, units = "in", dpi = 500)
+# Print plot
 dist_plot
 
-### Prefered Habitat Type
-Color_label <- "Prefered.Habitat.Type"
-
-### Plot all four on one plot
-# Generate the plots
-p1 <- fviz_pca_biplot(result_pca, axes = c(1, 2), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
-p2 <- fviz_pca_biplot(result_pca, axes = c(1, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
-p3 <- fviz_pca_biplot(result_pca, axes = c(2, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
-p4 <- fviz_pca_biplot(result_pca, axes = c(3, 4), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
-
-# Arrange the plots in a grid
-grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
-
-### Mode of Reproduction
-Color_label <- "Mode.of.reproduction"
-
-### Plot all four on one plot
-# Generate the plots
-p1 <- fviz_pca_biplot(result_pca, axes = c(1, 2), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
-p2 <- fviz_pca_biplot(result_pca, axes = c(1, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
-p3 <- fviz_pca_biplot(result_pca, axes = c(2, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
-p4 <- fviz_pca_biplot(result_pca, axes = c(3, 4), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
-
-# Arrange the plots in a grid
-grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
-
-### Foraging Mode
-Color_label <- "Foraging.Mode"
-
-### Plot all four on one plot
-# Generate the plots
-p1 <- fviz_pca_biplot(result_pca, axes = c(1, 2), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
-p2 <- fviz_pca_biplot(result_pca, axes = c(1, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
-p3 <- fviz_pca_biplot(result_pca, axes = c(2, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
-p4 <- fviz_pca_biplot(result_pca, axes = c(3, 4), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
-
-# Arrange the plots in a grid
-grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
-
-ggsave("PCA_plot_distribution.png", plot = dist_plot, width = 10, height = 8.4, units = "in", dpi = 500)
+# Plot for other categorical variables
+dist_plot <- plot_pca_with_color("Prefered.Habitat.Type")
+dist_plot <- plot_pca_with_color("Mode.of.reproduction")
+dist_plot <- plot_pca_with_color("Foraging.Mode")
 ```
 
 # K-Means Clustering
@@ -316,20 +272,18 @@ Color_label = "Distribution"
 custom_palette <- c("red", "blue", "green", "orange")
 
 # Save each of the plots 
-p1A <- fviz_pca_ind(result_pca, axes = c(1, 2), col.ind = as.factor(clusters_2groups), col.var = "black", title = "Coloration from K-Means Clustering")
-p1B <- fviz_pca_ind(result_pca, axes = c(1, 2), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black", title = "Coloration from Distribution")
-p2A <- fviz_pca_ind(result_pca, axes = c(1, 3), col.ind = as.factor(clusters_2groups), col.var = "black", title = "Coloration from K-Means Clustering")
-p2B <- fviz_pca_ind(result_pca, axes = c(1, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black", title = "Coloration from Distribution")
-p3A <- fviz_pca_ind(result_pca, axes = c(2, 3), col.ind = as.factor(clusters_2groups), col.var = "black", title = "Coloration from K-Means Clustering")
-p3B <- fviz_pca_ind(result_pca, axes = c(2, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black", title = "Coloration from Distribution")
-p4A <- fviz_pca_ind(result_pca, axes = c(3, 4), col.ind = as.factor(clusters_2groups), col.var = "black", title = "Coloration from K-Means Clustering")
-p4B <- fviz_pca_ind(result_pca, axes = c(3, 4), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black", title = "Coloration from Distribution")
+p1A <- fviz_pca_biplot(result_pca, axes = c(1, 2), col.ind = as.factor(clusters_2groups), col.var = "black", title = "PC1 & PC2 - Clustering") + ylim(-4, 4)
+p1B <- fviz_pca_biplot(result_pca, axes = c(1, 2), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black", title = "PC1 & PC2 - Distribution")+ ylim(-4, 4) 
+p2A <- fviz_pca_biplot(result_pca, axes = c(1, 3), col.ind = as.factor(clusters_2groups), col.var = "black", title = "PC1 & PC3 - K-Means Clustering")+ ylim(-4, 4) 
+p2B <- fviz_pca_biplot(result_pca, axes = c(1, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black", title = "PC1 & PC3 - Distribution")+ ylim(-4, 4)
+p3A <- fviz_pca_biplot(result_pca, axes = c(2, 3), col.ind = as.factor(clusters_2groups), col.var = "black", title = "PC2 & PC3 - K-Means Clustering")+ ylim(-4, 4)
+p3B <- fviz_pca_biplot(result_pca, axes = c(2, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black", title = "PC2 & PC3 - Distribution")+ylim(-4, 4)
 
 # Plot each axis combination
-all_4_plots<-grid.arrange(p1A, p1B, p2A, p2B, p3A, p3B, p4A, p4B, nrow = 4, ncol=2)
+all_4_plots<-grid.arrange(p1A, p1B, p2A, p2B, p3A, p3B, nrow = 4, ncol=2)
 
 # Save a ggplot object
-ggsave("all4dimensionsclustering.png", plot = all_4_plots, width = 11, height = 15.18, units = "in", dpi = 500)
+ggsave("Clustering-Kmeans.png", plot = all_4_plots, width = 11, height = 12.18, units = "in", dpi = 500)
 ```
 # Comparison of K-Means Clusterings and Distribution Groupings Using Chi-Squared Test of Independence
 ```{r}
