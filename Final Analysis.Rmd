@@ -351,29 +351,23 @@ print(chisq_test)
 # Specify the Variables to Use in the Random Forests Analysis
 variables_to_use_RF <- c(
   ### Categorical Variables
-  #"Species",
-  #"Genus",
-  #"Family",
-  #"Population",
   "Mode.of.reproduction",
-  #"Source",
   "Distribution",
   "Prefered.Habitat.Type",
   "Foraging.Mode",
-  "RCM",
   
   ### Location
   #"Longitude",
   #"Latitude",
   
   ### Numerical Variables
-  "Average.Female.adult.weight..g.",
+  #"Average.Female.adult.weight..g.",
   "Mean.F.SVL.adults..mm.",
-  "F.SVL.at.maturity..mm.",
+  #"F.SVL.at.maturity..mm.",
   "Offspring.SVL..mm.",
   "Mean.Clutch.Size",
   "Clutches.per.year",
-  "Clutch.Frequency",
+  #"Clutch.Frequency",
   "RCM"
   
   ### Standard Deviations and Sample Sizes
@@ -391,7 +385,8 @@ Remove Nas.
 ```{r}
 data_RF <- data %>%
   select(any_of(variables_to_use_RF)) %>% # Select variables
-  na.omit() # Remove NAs
+  na.omit() %>%
+  droplevels()
 ```
 
 ### Initial Split
@@ -433,7 +428,7 @@ forest <- randomForest(Distribution ~ ., # Formula for prediction
                       data = train_data, # Data for training
                       ntree = 5000, # Number of trees
                       maxnodes = 10, # Number of maximum leaves for each tree
-                      mtry = 4, # Number of variables for each tree
+                      mtry = 3, # Number of variables for each tree
                       importance = TRUE) # Computation of importance
 ```
 
@@ -453,8 +448,28 @@ Found the Mean Clutch Size caused the highest mean decrease in accuracy and mean
 varImpPlot(forest)
 ```
 
+```{r}
+RF_iterations_df
+```
+
+### Find the Variable Importance
+Found the Mean Clutch Size caused the highest mean decrease in accuracy and mean decrease in the Gini coefficient of impurity. Therefore it is the variable contributing the most to the classification. 
+
+```{r}
+varImpPlot(forest)
+```
+
 ## KNN 
-### 
+### Split the Data Randomly
+```{r}
+# We split the data (80% for training)
+first_split <- initial_split(data_RF, prop = 0.8)
+first_train_set <- analysis(first_split) 
+dim(first_train_set); head(first_train_set)
+first_test_set <- assessment(first_split) 
+dim(first_test_set); head(first_test_set)
+```
+
 
 
 

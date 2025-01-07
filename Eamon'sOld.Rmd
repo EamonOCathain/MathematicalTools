@@ -78,3 +78,65 @@ table_reduced_CCA <- result_CCA$CCA$u
 corr_pc_chemi = cor(table_reduced_CCA, mean_latitude_df[, c("mean_latitude")])
 corrplot(corr_pc_chemi)
 ```
+
+```{r}
+# Create a list of all possible values to test
+list_variables_RF_numeric <- list(
+  "Mean.F.SVL.adults..mm.",
+  "Offspring.SVL..mm.",
+  "Mean.Clutch.Size",
+  "Clutches.per.year",
+  "RCM") 
+
+RF_iterations_df <- data.frame(
+  variable = character(),
+  mtry = numeric(),
+  accuracy = numeric(),
+  stringsAsFactors = FALSE
+)
+
+counter <- 0
+
+for (var in list_variables_RF){
+  
+counter <- counter + 1   
+  
+split_data <- data_RF %>%
+  initial_split(prop = 0.8, strata = var)
+
+# Train and Test Data
+train_data <- analysis(split_data)
+test_data <- assessment(split_data)
+
+# Initialisation
+params_CV <- trainControl(method = "repeatedcv", 
+                          number = 10, 
+                          repeats = 5)
+
+predictor_forest <- caret::train(Distribution ~ ., 
+                                 data = data_RF, 
+                                 method = "rf", 
+                                 metric = "RMSE", 
+                                 trControl = params_CV, 
+                                 tuneGrid = expand.grid(mtry = 2:12))
+
+best_mtry <- predictor_forest$results$mtry[which.max(predictor_forest$results$RMSE)]
+highest_RMSE <- max(predictor_forest$results$RMSE)
+
+forest <- randomForest(all_of(var) ~ ., # Formula for prediction
+                      data = train_data, # Data for training
+                      ntree = 5000, # Number of trees
+                      maxnodes = 10, # Number of maximum leaves for each tree
+                      mtry = best_mtry, # Number of variables for each tree
+                      importance = TRUE) # Computation of importance
+
+# Fast way of computing accuracy with the pipe operator %>% 
+Accuracy <- predict(forest, newdata = select(test_data, - Distribution)) %>% 
+  table(prediction = ., truth = test_data$Distribution) %>% 
+  {sum(diag(.)) / sum(.)}
+
+RF_iterations_df[counter, "variable"] <- var
+RF_iterations_df[counter, "mtry"] <- best_mtry
+RF_iterations_df[counter, "accuracy"] <- Accuracy
+}
+```
