@@ -12,7 +12,7 @@ The repository contains R Markdown files (<code>.Rmd</code>) for conducting and 
 
 <h3 style="font-size:20px;">Main Files</h3>
 <ul style="font-size:16px;">
-  <li><strong>Analysis.Rmd:</strong> The main analysis script containing data cleaning, PCA, correlation matrix, random forest modeling, and visualization code. Final output is an HTML document with results.</li>
+  <li><strong>FinalAnalysis.Rmd:</strong> The main analysis script containing data cleaning, PCA, correlation matrix, random forest modeling, and visualization code. Final output is an HTML document with results.</li>
   <li><strong>lizard.csv:</strong> The primary dataset containing lizard-related data, including species traits like clutch frequency, habitat type, and body size.</li>
   <li><strong>Eamon'sSketch.Rmd / Rich_Sketch.Rmd:</strong> The working scripts of each team member to avoid overlapping changes while working on the script at the same time.</li>
   <li><strong>Eamon'sOld.Rmd:</strong> A previous version of the working script.</li>
