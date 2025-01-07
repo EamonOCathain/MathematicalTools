@@ -210,17 +210,17 @@ By altering the object Color_label we were able to check the effect of coloring 
 ```{r}
 # Define Graphing Function
 plot_pca_with_color <- function(color_label) {
-  p1 <- fviz_pca_biplot(result_pca, axes = c(1, 2), col.ind = data_PCA_all_vars[[color_label]], col.var = "black")
-  p2 <- fviz_pca_biplot(result_pca, axes = c(1, 3), col.ind = data_PCA_all_vars[[color_label]], col.var = "black")
-  p3 <- fviz_pca_biplot(result_pca, axes = c(2, 3), col.ind = data_PCA_all_vars[[color_label]], col.var = "black")
-  p4 <- fviz_pca_biplot(result_pca, axes = c(3, 4), col.ind = data_PCA_all_vars[[color_label]], col.var = "black")
+  p1 <- fviz_pca_biplot(result_pca, axes = c(1, 2), col.ind = data_PCA_all_vars[[color_label]], col.var = "black") + ylim(-4, 4)
+  p2 <- fviz_pca_biplot(result_pca, axes = c(1, 3), col.ind = data_PCA_all_vars[[color_label]], col.var = "black") + ylim(-4, 4)
+  p3 <- fviz_pca_biplot(result_pca, axes = c(2, 3), col.ind = data_PCA_all_vars[[color_label]], col.var = "black") + ylim(-4, 4)
+  p4 <- fviz_pca_biplot(result_pca, axes = c(3, 4), col.ind = data_PCA_all_vars[[color_label]], col.var = "black") + ylim(-4, 4)
   grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
 }
 
 # Use function with Distribution
 dist_plot <- plot_pca_with_color("Distribution")
 # Save Plot
-ggsave("PCA_plot_distribution.png", plot = dist_plot, width = 10, height = 8.4, units = "in", dpi = 500)
+ggsave("PCA_plot_distribution.png", plot = dist_plot, width = 15, height = 8, units = "in", dpi = 500)
 # Print plot
 dist_plot
 
@@ -262,25 +262,45 @@ clusters_4groups <- kmeans_4groups$cluster
 clusters_3groups <- kmeans_3groups$cluster
 clusters_2groups <- kmeans_2groups$cluster
 ```
+```{r}
+# Assuming `kmeans_clusters` is your kmeans object
+clusters_2groups <- ifelse(clusters_2groups == 1, 2, 1)
+```
 
 ### Plot a Comparison of the 2 Group K-Means Clustering vs The Coloration Applied by the "Distribution" Variable
 The k-means method found clusters which visually seem very similar to those applied by the Distribution category.
 ```{r}
 Color_label = "Distribution"
 
-# Define a color palette for consistency
-custom_palette <- c("red", "blue", "green", "orange")
-
 # Save each of the plots 
-p1A <- fviz_pca_biplot(result_pca, axes = c(1, 2), col.ind = as.factor(clusters_2groups), col.var = "black", title = "PC1 & PC2 - Clustering") + ylim(-4, 4)
-p1B <- fviz_pca_biplot(result_pca, axes = c(1, 2), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black", title = "PC1 & PC2 - Distribution")+ ylim(-4, 4) 
-p2A <- fviz_pca_biplot(result_pca, axes = c(1, 3), col.ind = as.factor(clusters_2groups), col.var = "black", title = "PC1 & PC3 - K-Means Clustering")+ ylim(-4, 4) 
-p2B <- fviz_pca_biplot(result_pca, axes = c(1, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black", title = "PC1 & PC3 - Distribution")+ ylim(-4, 4)
-p3A <- fviz_pca_biplot(result_pca, axes = c(2, 3), col.ind = as.factor(clusters_2groups), col.var = "black", title = "PC2 & PC3 - K-Means Clustering")+ ylim(-4, 4)
-p3B <- fviz_pca_biplot(result_pca, axes = c(2, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black", title = "PC2 & PC3 - Distribution")+ylim(-4, 4)
+p1A <- fviz_pca_ind(result_pca, axes = c(1, 2), col.ind = as.factor(clusters_2groups), col.var = "black", title = "DIM1 & DIM2") + ylim(-4, 4)
+p1B <- fviz_pca_ind(result_pca, axes = c(1, 2), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black", title = "DIM1 & DIM2") + ylim(-4, 4) 
+p2A <- fviz_pca_ind(result_pca, axes = c(1, 3), col.ind = as.factor(clusters_2groups), col.var = "black", title = "DIM1 & PC3") + ylim(-4, 4)
+p2B <- fviz_pca_ind(result_pca, axes = c(1, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black", title = "DIM1 & PC3") + ylim(-4, 4)
+p3A <- fviz_pca_ind(result_pca, axes = c(2, 3), col.ind = as.factor(clusters_2groups), col.var = "black", title = "DIM2 & PC3") + ylim(-4, 4)
+p3B <- fviz_pca_ind(result_pca, axes = c(2, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black", title = "DIM2 & PC3") + ylim(-4, 4)
 
-# Plot each axis combination
-all_4_plots<-grid.arrange(p1A, p1B, p2A, p2B, p3A, p3B, nrow = 4, ncol=2)
+# Create titles for the columns
+column_titles <- grid.arrange(
+  textGrob("K-Means Clustering", gp = gpar(fontsize = 15, fontface = "bold")),
+  textGrob("'Distribution' Groupings", gp = gpar(fontsize = 15, fontface = "bold")),
+  ncol = 2
+)
+
+# Arrange the plots with the titles
+all_4_plots <- grid.arrange(
+  column_titles,
+  p1A, p1B,
+  p2A, p2B,
+  p3A, p3B,
+  layout_matrix = rbind(
+    c(1, 1), # Titles row spans both columns
+    c(2, 3), # Row for p1A and p1B
+    c(4, 5), # Row for p2A and p2B
+    c(6, 7)  # Row for p3A and p3B
+  ),
+  heights = c(0.2, 1, 1, 1) # Adjust heights
+)
 
 # Save a ggplot object
 ggsave("Clustering-Kmeans.png", plot = all_4_plots, width = 11, height = 12.18, units = "in", dpi = 500)
@@ -412,84 +432,29 @@ accuracy
 Found the Mean Clutch Size caused the highest mean decrease in accuracy and mean decrease in the Gini coefficient of impurity. Therefore it is the variable contributing the most to the classification. 
 
 ```{r}
-png("Variable_importance.png", width = 12, height = 8, units = "in", res = 500)
+# Set the graphical device
+png("Variable_importance.png", width = 8, height = 3, units = "in", res = 500)
+
+# Set the layout matrix to ensure equal sizes for both plots
+layout(matrix(1:2, nrow = 2))  # Two plots side-by-side with equal widths
+
+# Plot the variable importance
 varImpPlot(
-  forest, 
-  main = "Variable Importance Plot Random Forests",
-  cex = 0.7,
-  
+  forest,
+  main = "",  
+  cex = 0.7 
 )
+
+# Close the graphical device
 dev.off()
 
+# Plot the variable importance
 varImpPlot(
-  forest, 
-  main = "Variable Importance Plot Random Forests",
-  cex = 0.7  # Adjust font size
+  forest,
+  main = "",  
+  cex = 0.7 
 )
-```
 
-## KNN 
-### Split the Data Randomly
-```{r}
-# We split the data (80% for training)
-first_split <- initial_split(data_RF, prop = 0.8)
-first_train_set <- analysis(first_split) 
-dim(first_train_set); head(first_train_set)
-first_test_set <- assessment(first_split) 
-dim(first_test_set); head(first_test_set)
-```
-
-# Appendix - CA and CCA
-This section is not presented in the main text. We tried to do a CA and CCA but the lack of environmental variables proved to be an obstacle. Absolute latitude was averaged for each habitat in order to test the effect of latitude/climate on the association between families and particular habitats. However no association was found and we were unsure if averaging the value of latitudes for the habitats was appropriate.  
-
-# Variables to use in the Analysis
-```{r}
-variables_to_use_CCA <- c(
-  #"Distribution",
-  #"Foraging.Mode",
-  #"Mode.of.reproduction",
-  "Prefered.Habitat.Type",
-  "Family",
-  "Latitude"
-)
-```
-
-
-### Intiial Data Wrangling 
-```{r}
-# Select all four variables to be used in the CA and CCA, omit NAs
-data_CCA <- data %>%
-  # Select only the variables to use for the CA and CCA
-  select(any_of(variables_to_use_CCA)) %>%
-  # Exclude NAs
-  na.omit() 
-
-# Make a frequency table containing just 2 categorical variables for the CA
-# With each pair of levels on a seperate row
-freq_CA_long <- data_CCA %>%
-  select(Family, Prefered.Habitat.Type) %>%
-  table() %>%
-  as_tibble %>%
-  rename(Freq = "n",
-         Habitat = "Prefered.Habitat.Type")
-
-# Make a tibble with the count of each combination
-freq_CA_short <- data_CCA %>%
-  select(Prefered.Habitat.Type, Family) %>%
-  count(Prefered.Habitat.Type, Family) %>%  
-  pivot_wider(
-    names_from = Family, 
-    values_from = n,  
-    values_fill = 0)
-
-# Convert to dataframe and create rownames (for use creating average profile)
-freq_CA_short_df <- freq_CA_short %>%
-  as.data.frame() %>%  
-  column_to_rownames(var = "Prefered.Habitat.Type")  
-
-freq_CA_long
-freq_CA_short
-freq_CA_short_df
 ```
 
 ### Represent in ggplot
