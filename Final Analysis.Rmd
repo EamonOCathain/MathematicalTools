@@ -110,11 +110,11 @@ print(paste("Number of rows after NA removal on entire dataset =", nrow(na.omit(
 
 # PCA
 ### Choose the Variables to be Used in the PCA
-This saves the variables to be used in the PCA as an object. The variables used are easily altered by commenting them in or out. Only numerical variables are considered as candidates as PCA can only use numerical variables. Where two variables describe the same trait, one of them was removed. This was done in order to avoid bias in the PCA by over emphasising particular traits.
-
-"Clutch.Frequency" describes whether a species is single or multiple brooded (i.e lays a clutch once or several times during the breeding season) and "Clutches.Per.Year" is the number of clutches laid per year. These two variables describe the same trait (clutches per year/breeding season) in different ways. Clutch frequency describes it as between 0.5 (which we have guessed means not certain to produce a clutch every breeding season), 1 (one clutch per season) or 2 (more than 1 clutch per breeding season). In contrast clutches per year simply states the number of clutches produced each year. As this is the more high definition variable it was decided to keep it in the analysis instead of clutch frequency.
+This saves the variables to be used in the PCA as an object. The variables used are easily altered by commenting them in or out. Only numerical variables are considered as candidates as PCA can only use numerical variables. Where two variables describe the same trait and/or are correlated, one of them was removed. This was done in order to avoid bias in the PCA by over emphasising particular traits.
 
 "F.SVL.at.maturity..mm" describes the same trait as "Mean.F.SVL.adults..mm.". A correlation of these two variables revealed a 97% correlation. Therefore, "F.SVL.at.maturity..mm." was randomly chosen to be removed.
+
+Clutch Frequency and Clutches Per Year were also correlated and describe the same trait and therefore Clutch Frequency was removed.
 
 Sample sizes and standard deviations were removed from the analysis as they were not thought to be relevant. 
 ```{r}
