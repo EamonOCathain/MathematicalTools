@@ -76,6 +76,7 @@ data <- data[!duplicated(data), ]
 
 ### Visualise the Proportion of Each Variable Which is NA
 By doing this we found that most of the numeric variables had a high proportion of NA's, with some such as RCM having over 50%. Therefore exclusion of all rows containing NA's was likely to drastically reduce the size dataset and cause data loss. The number of rows in the original dataset was 734 and the number after exclusion of all NAs was 146. Therefore the NA's were removed separately for each analysis using only the variables required for that analysis, which helped to reduce data loss.
+
 ```{r}
 # Calculate percentage of NA values for each column
 na_percentage <- colSums(is.na(data)) / nrow(data) * 100
@@ -155,6 +156,7 @@ plot(data$F.SVL.at.maturity..mm.~data$Mean.F.SVL.adults..mm.)
 
 ### Create New Dataset retaining only the PCA variables
 Here a new subset of the data is created for the PCA. The PCA data was cleaned of all rows containing NA's and standardised such that each variable has mean 0 and variance 1 (which allows for comparison of variables on different scales in the PCA). A second data set was created containing the rows retained after NA omition of the PCA data, but containing all the original variables. This is later used to color the PCA visualisations with categorical variables.
+
 ```{r}
 # Create the new PCA dataset
 data_PCA <- data %>%
