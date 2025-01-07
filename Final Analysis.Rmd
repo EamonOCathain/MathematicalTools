@@ -24,6 +24,7 @@ library(tidyr)
 library(gridExtra)
 library(factoextra)
 library(caret)
+library(cluster)
 ```
 
 ### Knitting Configuration
@@ -123,7 +124,7 @@ variables_to_use_PCA <- c(
   #"Latitude",
   
   ### Means and Numerical
-  "Average.Female.adult.weight..g.",
+  #"Average.Female.adult.weight..g.",
   "Mean.F.SVL.adults..mm.",
   #"F.SVL.at.maturity..mm.",
   "Offspring.SVL..mm.",
@@ -152,26 +153,40 @@ plot(data$Clutch.Frequency~data$Clutches.per.year)
 # Are "F.SVL.at.maturity..mm." and "Mean.F.SVL.adults..mm." the same?
 cor(data$F.SVL.at.maturity..mm., data$Mean.F.SVL.adults..mm., use="complete.obs")
 plot(data$F.SVL.at.maturity..mm.~data$Mean.F.SVL.adults..mm.)
+
+data %>% 
+  select(where(is.numeric), -Latitude, -Longitude, -SD.Female.adult.weight..g., -SD.F.SVL.adults..mm., -Sample.Size.Female.adult.weight, -Sample.size.Mean.F.SVL.adults, -Sample.size.Clutch.Size.) %>%
+  cor(use="pairwise.complete.obs") %>% # Calculate the empirical correlation matrix
+  corrplot(tl.cex = 0.7) # Then graph this matrix
 ```
 
 ### Create New Dataset retaining only the PCA variables
+
 Here a new subset of the data is created for the PCA. The PCA data was cleaned of all rows containing NA's and standardised such that each variable has mean 0 and variance 1 (which allows for comparison of variables on different scales in the PCA). A second data set was created containing the rows retained after NA omition of the PCA data, but containing all the original variables. This is later used to color the PCA visualisations with categorical variables.
 
 ```{r}
 # Create the new PCA dataset
 data_PCA <- data %>%
-  select(any_of(variables_to_use_PCA)) %>% # Filter for the variables to be used in the PCA
-  na.omit() %>% # Omit NA's
-  mutate_all(.funs = scale) # Scale the data for the PCA
+  select(any_of(variables_to_use_PCA)) %>% # filter variables
+  na.omit() %>% # omit NA's
+  mutate_all(.funs = scale) %>% # standardise the data
+  rownames_to_column(var = "row_id") # set rownames as a column
 
 # Create ancillary dataset with all original variables but filtered to keep only rows present in the PCA dataset
 # This will be used for coloration of the PCA graphs with categorical variables
+
 data_PCA_all_vars <- data %>%
-  filter(row_number() %in% rownames(data_PCA))
+  rownames_to_column(var = "row_id") %>% # set rownames as a column
+  filter(row_id %in% data_PCA$row_id) %>% # filter the data to match rows of data_PCA
+  column_to_rownames(var = "row_id") # Convert column back to rownames
+
+# Convert the column back to rownames for the PCA data
+data_PCA <- data_PCA %>%
+  column_to_rownames(var = "row_id")
 ```
 
 ### Visualise with a Correlation
-This shows the correlation of each variable pairs in PCA data.
+This shows the correlation of each variable pairs in filtered PCA data. None of the variables are highly correlated with each other.
 ```{r}
 ### CorrPlot
 data_PCA %>% 
@@ -180,6 +195,7 @@ data_PCA %>%
 ```
 
 ### Run the PCA
+Here the PCA is run and the results are presented in various forms including the output tables, a scree plot showing the percentage of explained variance by each principle component and the correlation of each variable with each principle component.
 ```{r}
 # Run the PCA
 result_pca <- PCA(data_PCA, 
@@ -199,9 +215,49 @@ corrplot(result_pca$var$cor)
 ```
 
 ### Plot the Individuals with the Variable Arrows and the Categorical Coloring
-By altering the object Color_label we were able to check the effect of coloring with each of the four main categorical variables (Distribution, Habitat type, Foraging mode and Reproductive type). It was found that distribution produced the clearest clustering with the least noise. Therefore distribution was taken forward as a potential categorical variable which can account for much of the variation.
+By altering the object Color_label we were able to check the effect of coloring with each of the four main categorical variables (Distribution, Habitat type, Foraging mode and Reproductive type). It was found that distribution produced the clearest clustering with the least noise. Therefore distribution was taken forward as a potential categorical variable which can account for much of the variation. This code could of been shortened using a loop, however it affected the scaling of the axes and the font size and we were unable to resolve this issue.
+
 ```{r}
 Color_label <- "Distribution"
+
+### Plot all four on one plot
+# Generate the plots
+p1 <- fviz_pca_biplot(result_pca, axes = c(1, 2), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
+p2 <- fviz_pca_biplot(result_pca, axes = c(1, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
+p3 <- fviz_pca_biplot(result_pca, axes = c(2, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
+p4 <- fviz_pca_biplot(result_pca, axes = c(3, 4), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
+
+# Arrange the plots in a grid
+grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
+
+### Prefered Habitat Type
+Color_label <- "Prefered.Habitat.Type"
+
+### Plot all four on one plot
+# Generate the plots
+p1 <- fviz_pca_biplot(result_pca, axes = c(1, 2), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
+p2 <- fviz_pca_biplot(result_pca, axes = c(1, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
+p3 <- fviz_pca_biplot(result_pca, axes = c(2, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
+p4 <- fviz_pca_biplot(result_pca, axes = c(3, 4), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
+
+# Arrange the plots in a grid
+grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
+
+### Mode of Reproduction
+Color_label <- "Mode.of.reproduction"
+
+### Plot all four on one plot
+# Generate the plots
+p1 <- fviz_pca_biplot(result_pca, axes = c(1, 2), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
+p2 <- fviz_pca_biplot(result_pca, axes = c(1, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
+p3 <- fviz_pca_biplot(result_pca, axes = c(2, 3), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
+p4 <- fviz_pca_biplot(result_pca, axes = c(3, 4), col.ind = data_PCA_all_vars[[Color_label]], col.var = "black")
+
+# Arrange the plots in a grid
+grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
+
+### Foraging Mode
+Color_label <- "Foraging.Mode"
 
 ### Plot all four on one plot
 # Generate the plots
@@ -217,24 +273,26 @@ grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
 # K-Means Clustering
 ### Create Clusters for 2-5 Groups Out of Curiosity
 ```{r}
-# Create Clusters For Four Groups
-first_kmeans <- data_PCA %>% 
-  kmeans(centers = 4)
+# Create clusters for 2 Groups - To Match Distribution Levels
+kmeans_2groups <- data_PCA %>%
+  kmeans(centers=2, iter.max = 1000)
 
+# Calculate the within group inertia
 # Within Group Inertia
-first_kmeans$tot.withinss
+kmeans_2groups$tot.withinss
+
+# Create Clusters For More Groups Out Curiosity
+first_kmeans <- data_PCA %>% 
+  kmeans(centers = 4, iter.max = 1000)
 
 kmeans_5groups<- data_PCA %>%
-  kmeans(centers = 5)
+  kmeans(centers = 5, iter.max = 1000)
 
 kmeans_4groups<- data_PCA %>%
-  kmeans(centers = 4)
+  kmeans(centers = 4, iter.max = 1000)
 
 kmeans_3groups<- data_PCA %>%
-  kmeans(centers=3)
-
-kmeans_2groups <- data_PCA %>%
-  kmeans(centers=2)
+  kmeans(centers=3, iter.max = 1000)
 
 # Extract the Clustering Groups
 clusters_5groups <- kmeans_5groups$cluster
@@ -265,6 +323,27 @@ all_4_plots<-grid.arrange(p1A, p1B, p2A, p2B, p3A, p3B, p4A, p4B, nrow = 4, ncol
 # Save a ggplot object
 ggsave("all4dimensionsclustering.png", plot = all_4_plots, width = 11, height = 15.18, units = "in", dpi = 500)
 ```
+# Comparison of K-Means Clusterings and Distribution Groupings Using Chi-Squared Test of Independence
+```{r}
+# Convert kmeans output to a dataframe
+data_with_clusters <- data_PCA %>%
+  as.data.frame() %>%                  # Ensure it's a dataframe
+  mutate(Cluster = kmeans_2groups$cluster) %>% # Add the cluster assignments
+  mutate(Distribution = data_PCA_all_vars$Distribution)
+data_with_clusters
+
+# Contingency table
+table_kmeans_vs_distribution <- table(kmeans_clusters = data_with_clusters$Cluster, distribution = data_with_clusters$Distribution)
+
+# Print the table
+print(table_kmeans_vs_distribution)
+
+# Perform chi-square test
+chisq_test <- chisq.test(table_kmeans_vs_distribution)
+print(chisq_test)
+```
+
+
 # Unsupervised Learning
 ##Split Data
 ### Specify Variables to Use
