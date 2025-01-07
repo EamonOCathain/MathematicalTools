@@ -456,6 +456,54 @@ varImpPlot(
 )
 
 ```
+# Appendix - CA and CCA
+This section has been removed and is not up to date. See comments in the conclusions. The intention was to compare the familys associations with habitats using CA and then see if CCA could find an effect of absolute latitude on the interaction between family and habitat. However, the averaging of absolute latitude for each habitat seems tricky as its they could spread across the globe. No association was found.
+
+### Create Data
+```{r}
+# Variables to use in CCA
+variables_to_use_CCA <- c(
+  #"Distribution",
+  #"Foraging.Mode",
+  #"Mode.of.reproduction",
+  "Prefered.Habitat.Type",
+  "Family",
+  "Latitude")
+
+# Select all four variables to be used in the CA and CCA, omit NAs
+data_CCA <- data %>%
+  # Select only the variables to use for the CA and CCA
+  select(any_of(variables_to_use_CCA)) %>%
+  # Exclude NAs
+  na.omit() 
+
+# Make a frequency table containing just 2 categorical variables for the CA
+# With each pair of levels on a seperate row
+freq_CA_long <- data_CCA %>%
+  select(Family, Prefered.Habitat.Type) %>%
+  table() %>%
+  as_tibble %>%
+  rename(Freq = "n",
+         Habitat = "Prefered.Habitat.Type")
+
+# Make a tibble with the count of each combination
+freq_CA_short <- data_CCA %>%
+  select(Prefered.Habitat.Type, Family) %>%
+  count(Prefered.Habitat.Type, Family) %>%  
+  pivot_wider(
+    names_from = Family, 
+    values_from = n,  
+    values_fill = 0)
+
+# Convert to dataframe and create rownames (for use creating average profile)
+freq_CA_short_df <- freq_CA_short %>%
+  as.data.frame() %>%  
+  column_to_rownames(var = "Prefered.Habitat.Type")  
+
+freq_CA_long
+freq_CA_short
+freq_CA_short_df
+```
 
 ### Represent in ggplot
 ```{r}
